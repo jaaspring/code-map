@@ -1,6 +1,7 @@
 # SQLAlchemy models (database tables)
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Float, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Float, Text, JSON
+from sqlalchemy.orm import relationship
 from core.database import Base
 
 class UserTest(Base):
@@ -31,3 +32,37 @@ class FollowUpAnswers(Base):
     user_test_id = Column(Integer, ForeignKey("user_test.id"), nullable=False)
     question_id = Column(Integer, ForeignKey("generated_questions.id"), nullable=False)
     selected_option = Column(String, nullable=False)
+
+class CareerRecommendation(Base):
+    __tablename__ = "career_recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_test_id = Column(Integer, ForeignKey("user_test.id"))
+    profile_text = Column(String)  # OpenAI-generated summary
+
+    # optional: link to job matches
+    job_matches = relationship("CareerJobMatch", back_populates="recommendation")
+
+
+class CareerJobMatch(Base):
+    __tablename__ = "career_job_matches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recommendation_id = Column(Integer, ForeignKey("career_recommendations.id"))
+    job_index = Column(Integer)
+    similarity_score = Column(Float)
+    similarity_percentage = Column(Float)
+    job_title = Column(String)
+    job_description = Column(String)
+    required_skills = Column(JSON)
+    required_knowledge = Column(JSON)
+
+    recommendation = relationship("CareerRecommendation", back_populates="job_matches")
+
+class UserSkillsKnowledge(Base):
+    __tablename__ = "user_skills_knowledge"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_test_id = Column(Integer, ForeignKey("user_tests.id"))
+    skills = Column(JSON)       # ["Python", "Teamwork", ...]
+    knowledge = Column(JSON)    # ["Databases", "Algorithms", ...]
