@@ -3,17 +3,18 @@ import 'package:flutter/material.dart';
 import '../../models/user_profile_match.dart';
 import '../../services/api_service.dart';
 
-class JobRecommendationsScreen extends StatefulWidget {
+class CareerRecommendationsScreen extends StatefulWidget {
   final int userTestId;
 
-  const JobRecommendationsScreen({super.key, required this.userTestId});
+  const CareerRecommendationsScreen({super.key, required this.userTestId});
 
   @override
-  State<JobRecommendationsScreen> createState() =>
-      _JobRecommendationsScreenState();
+  State<CareerRecommendationsScreen> createState() =>
+      _CareerRecommendationsScreenState();
 }
 
-class _JobRecommendationsScreenState extends State<JobRecommendationsScreen> {
+class _CareerRecommendationsScreenState
+    extends State<CareerRecommendationsScreen> {
   UserProfileMatchResponse? _profileMatch;
   bool _isLoading = true;
   String? _errorMessage;

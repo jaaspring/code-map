@@ -81,7 +81,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (_) => JobRecommendationsScreen(
+            builder: (_) => CareerRecommendationsScreen(
               userTestId: widget.userTestId,
             ),
           ),
