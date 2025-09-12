@@ -1,3 +1,4 @@
+import 'package:code_map/screens/results/skill_gap_analysis.dart';
 import 'package:flutter/material.dart';
 import '../../models/user_profile_match.dart';
 import '../../services/api_service.dart';
@@ -524,7 +525,18 @@ class _JobRecommendationsScreenState extends State<JobRecommendationsScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
-                              // Navigate to Skill Gap Analysis
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SkillGapAnalysis(
+                                    jobMatch:
+                                        _profileMatch!.topMatches.firstWhere(
+                                      (job) =>
+                                          job.jobIndex == _selectedJobIndex,
+                                    ),
+                                  ),
+                                ),
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).primaryColor,
