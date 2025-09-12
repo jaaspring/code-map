@@ -44,7 +44,7 @@ class CareerRecommendation(Base):
     user_test_id = Column(Integer, ForeignKey("user_test.id"))
     profile_text = Column(String)  # OpenAI-generated summary
 
-    user_test = relationship("UserTest", back_populates="career_recommendations")  # <- added
+    user_test = relationship("UserTest", back_populates="career_recommendations")
     job_matches = relationship("CareerJobMatch", back_populates="recommendation")
 
 class CareerJobMatch(Base):
@@ -62,13 +62,12 @@ class CareerJobMatch(Base):
 
     recommendation = relationship("CareerRecommendation", back_populates="job_matches")
 
-# models/assessment.py - ensure this model exists
 class UserSkillsKnowledge(Base):
     __tablename__ = "user_skills_knowledge"
     
     id = Column(Integer, primary_key=True, index=True)
     user_test_id = Column(Integer, ForeignKey("user_test.id"), unique=True)
-    skills = Column(JSON)  # or use ARRAY(String) if using PostgreSQL
-    knowledge = Column(JSON)  # or use ARRAY(String) if using PostgreSQL
+    skills = Column(JSON)
+    knowledge = Column(JSON)
 
     user_test = relationship("UserTest", back_populates="skills_knowledge")
