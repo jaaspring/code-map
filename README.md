@@ -15,7 +15,7 @@ Personalized career recommendation and skill gap analysis powered by AI.
   - **Skill Reflection Test** _(leverages NLP to extracts skills and insights from text)_  
   - **Follow-Up Test** _(leverages NLP to generates personalized MCQs from user reflections)_
 - **Generate Embeddings & Job Matches** _(leverages NLP for semantic similarity and matching)_  
-- **Career Recommendations** _(leverages NLP to tailor suggestions based on analyzed input)_  
+- **Career Recommendations** _(leverages NLP to tailor suggestions based on analyzed input and job data)_  
 - **Skill Gap Analysis** _(compares user skills with job requirements using NLP)_
 
 
