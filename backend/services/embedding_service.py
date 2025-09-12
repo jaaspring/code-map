@@ -326,6 +326,7 @@ def match_user_to_job(
                 summary_prompt = (
                     "Extract a clear, comprehensive job description from the text below. "
                     "Focus on responsibilities. "
+                    "Less than 200 characters. "
                     "Write it concisely in a professional tone (1 paragraph).\n\n"
                     f"JOB DESCRIPTION TEXT:\n{job_desc}\n\n"
                     "Return only the cleaned-up job description without any additional text."
@@ -338,8 +339,9 @@ def match_user_to_job(
                     "1. Extract BOTH technical skills (programming languages, tools, software) AND soft skills (communication, leadership, teamwork)\n"
                     "2. Return ONLY a comma-separated list without any additional text\n"
                     "3. Be specific - if it mentions 'Python', include 'Python', not just 'programming'\n"
-                    "4. Include skills mentioned in requirements, qualifications, or responsibilities sections\n"
-                    "5. Remove duplicates and keep the most specific term\n\n"
+                    "4. Exclude any languages such as English, Malay, Mandarin'\n"
+                    "5. Include skills mentioned in requirements, qualifications, or responsibilities sections\n"
+                    "6. Remove duplicates and keep the most specific term\n\n"
                     "EXAMPLE OUTPUT: Python, Java, SQL, React, AWS, Communication, Teamwork, Problem Solving\n\n"
                     "EXTRACTED SKILLS:"
                 )
