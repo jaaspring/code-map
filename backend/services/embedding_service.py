@@ -339,7 +339,7 @@ def match_user_to_job(
                 summary_prompt = (
                     "Extract a clear, comprehensive job description from the text below. "
                     "Focus on responsibilities. "
-                    "Less than 200 characters. "
+                    "Less than 400 characters. "
                     "Write it concisely in a professional tone (1 paragraph).\n\n"
                     f"JOB DESCRIPTION TEXT:\n{job_desc}\n\n"
                     "Return only the cleaned-up job description without any additional text."
