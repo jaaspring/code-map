@@ -1,7 +1,6 @@
-# SQLAlchemy models (database tables)
-
-from sqlalchemy import Column, ForeignKey, Integer, String, Float, Text, JSON
+from sqlalchemy import Column, ForeignKey, Integer, String, Float, Text, JSON, DateTime
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from core.database import Base
 
 class UserTest(Base):
@@ -14,6 +13,10 @@ class UserTest(Base):
     programmingLanguages = Column(String, nullable=True)
     courseworkExperience = Column(String, nullable=True)
     skillReflection = Column(Text, nullable=True)
+    
+    skills_knowledge = relationship("UserSkillsKnowledge", back_populates="user_test", uselist=False)
+    career_recommendations = relationship("CareerRecommendation", back_populates="user_test")
+    
 
 class GeneratedQuestion(Base):
     __tablename__ = "generated_questions"
@@ -28,6 +31,7 @@ class GeneratedQuestion(Base):
     
 class FollowUpAnswers(Base):
     __tablename__ = "follow_up_answers"
+
     id = Column(Integer, primary_key=True, index=True)
     user_test_id = Column(Integer, ForeignKey("user_test.id"), nullable=False)
     question_id = Column(Integer, ForeignKey("generated_questions.id"), nullable=False)
@@ -40,9 +44,8 @@ class CareerRecommendation(Base):
     user_test_id = Column(Integer, ForeignKey("user_test.id"))
     profile_text = Column(String)  # OpenAI-generated summary
 
-    # optional: link to job matches
+    user_test = relationship("UserTest", back_populates="career_recommendations")  # <- added
     job_matches = relationship("CareerJobMatch", back_populates="recommendation")
-
 
 class CareerJobMatch(Base):
     __tablename__ = "career_job_matches"
@@ -59,10 +62,13 @@ class CareerJobMatch(Base):
 
     recommendation = relationship("CareerRecommendation", back_populates="job_matches")
 
+# models/assessment.py - ensure this model exists
 class UserSkillsKnowledge(Base):
     __tablename__ = "user_skills_knowledge"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_test_id = Column(Integer, ForeignKey("user_tests.id"))
-    skills = Column(JSON)       # ["Python", "Teamwork", ...]
-    knowledge = Column(JSON)    # ["Databases", "Algorithms", ...]
+    user_test_id = Column(Integer, ForeignKey("user_test.id"), unique=True)
+    skills = Column(JSON)  # or use ARRAY(String) if using PostgreSQL
+    knowledge = Column(JSON)  # or use ARRAY(String) if using PostgreSQL
+
+    user_test = relationship("UserTest", back_populates="skills_knowledge")

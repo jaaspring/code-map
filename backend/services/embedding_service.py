@@ -1,6 +1,7 @@
 import glob
 import os
 import pickle
+import json
 from typing import Any, Dict, List
 from dotenv import load_dotenv
 import openai
@@ -16,6 +17,7 @@ from models.assessment import (
     FollowUpAnswers,
     GeneratedQuestion,
     UserTest,
+    UserSkillsKnowledge,
 )
 from services.scoring_service import calculate_score
 
@@ -249,11 +251,17 @@ def analyze_user_skills_knowledge(user_test_id: int) -> Dict[str, Any]:
     {combined_data}
 
     TASK:
-    - Extract SKILLS (technical + soft skills).
-    - Extract KNOWLEDGE AREAS (subject domains, concepts).
-    
+    - Extract SKILLS (technical + soft skills) from the user's skillReflection AND their performance in follow-up questions
+    - Extract KNOWLEDGE AREAS (subject domains, concepts) from the user's courseworkExperience AND their performance in follow-up questions
+    - Pay special attention to the follow-up results section which contains:
+      * question_text: The actual question asked
+      * selected_option: What the user answered
+      * correct_answer: The correct answer
+      * is_correct: Whether the user got it right
+    - Use the score ({combined_data.get('score', 0)}) to weight the reliability of the user's self-assessment
+
     OUTPUT RULES:
-    - Respond strictly in JSON.
+    - Respond strictly in JSON format ONLY, without any code block markers.
     - Use keys: skills, knowledge.
     - Each must be a list of short strings.
     - Example:
@@ -261,28 +269,105 @@ def analyze_user_skills_knowledge(user_test_id: int) -> Dict[str, Any]:
         "skills": ["Python", "Communication", "Problem Solving"],
         "knowledge": ["Algorithms", "Database Systems"]
       }}
+    - DO NOT use markdown code blocks like ```json or ```.
+    - Base your analysis on both the user's self-reported skills AND their demonstrated knowledge in the follow-up questions.
+    - For skills: Include both what they claim to know AND what they demonstrated through correct answers
+    - For knowledge: Focus on domains/concepts where they showed proficiency through correct answers
     """
 
     try:
         response = call_openai(prompt, max_tokens=500, temperature=0.2)
-        result = json.loads(response)
-
+        
+        # Debug the OpenAI response
+        print(f"OpenAI response: {response}")
+        
+        # Clean the response
+        cleaned_response = response.strip()
+        
+        # Remove code block markers if present
+        if cleaned_response.startswith('```json'):
+            cleaned_response = cleaned_response[7:]
+        elif cleaned_response.startswith('```'):
+            cleaned_response = cleaned_response[3:]
+        if cleaned_response.endswith('```'):
+            cleaned_response = cleaned_response[:-3]
+        cleaned_response = cleaned_response.strip()
+        
+        print(f"Cleaned response: {cleaned_response}")
+        
+        # Try to parse the cleaned response
+        try:
+            result = json.loads(cleaned_response)
+        except json.JSONDecodeError:
+            # If JSON parsing fails, try to extract JSON from the text
+            import re
+            json_match = re.search(r'\{.*\}', cleaned_response, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+            else:
+                raise ValueError("No valid JSON found in response")
+        
+        # Validate the result structure
+        if not isinstance(result, dict):
+            raise ValueError("Response is not a dictionary")
+        
+        if "skills" not in result or "knowledge" not in result:
+            raise ValueError("Missing required keys 'skills' or 'knowledge'")
+        
+        if not isinstance(result["skills"], list) or not isinstance(result["knowledge"], list):
+            raise ValueError("Skills and knowledge should be lists")
+        
         # Save to DB
         db = SessionLocal()
         try:
-            entry = UserSkillsKnowledge(
-                user_test_id=user_test_id,
-                skills=result.get("skills", []),
-                knowledge=result.get("knowledge", [])
-            )
-            db.add(entry)
+            # Check if entry already exists
+            existing_entry = db.query(UserSkillsKnowledge).filter(
+                UserSkillsKnowledge.user_test_id == user_test_id
+            ).first()
+            
+            # Convert to JSON-serializable format if needed
+            skills_list = result.get("skills", [])
+            knowledge_list = result.get("knowledge", [])
+            
+            # Ensure we're saving lists, not strings
+            if isinstance(skills_list, str):
+                skills_list = [skill.strip() for skill in skills_list.split(",") if skill.strip()]
+            if isinstance(knowledge_list, str):
+                knowledge_list = [knowledge.strip() for knowledge in knowledge_list.split(",") if knowledge.strip()]
+            
+            if existing_entry:
+                # Update existing entry
+                existing_entry.skills = skills_list
+                existing_entry.knowledge = knowledge_list
+                print(f"Updated existing entry for user_test_id {user_test_id}")
+            else:
+                # Create new entry
+                entry = UserSkillsKnowledge(
+                    user_test_id=user_test_id,
+                    skills=skills_list,
+                    knowledge=knowledge_list
+                )
+                db.add(entry)
+                print(f"Created new entry for user_test_id {user_test_id}")
+            
             db.commit()
+            print(f"Successfully saved skills/knowledge for user_test_id {user_test_id}")
+            print(f"Skills: {skills_list}")
+            print(f"Knowledge: {knowledge_list}")
+            
+            return result
+            
+        except Exception as db_error:
+            db.rollback()
+            print(f"Database error: {db_error}")
+            return {"error": f"Database error: {str(db_error)}"}
         finally:
             db.close()
-
-        return result
+        
     except Exception as e:
-        return {"error": f"Failed to analyze skills/knowledge: {e}"}
+        error_msg = f"Failed to analyze skills/knowledge: {str(e)}. Response: {cleaned_response if 'cleaned_response' in locals() else 'No response'}"
+        print(error_msg)
+        return {"error": error_msg}
 
 # -----------------------------
 # Profile generation via OpenAI
@@ -390,8 +475,10 @@ def match_user_to_job(
                 summary_prompt = (
                     "Extract a clear, comprehensive job description from the text below. "
                     "Focus on the relevant responsibilities of the career. "
-                    "Less than 400 characters. "
-                    "Write it concisely in a professional tone (1 paragraph).\n\n"
+                    "Write it concisely in a professional tone (1 paragraph). "
+                    "Starts with 'This career/career involves...'"
+                    "Avoid mentioning overly detailed information such as the company, years of experience, etc."
+                    "Less than 400 characters.\n\n"
                     f"JOB DESCRIPTION TEXT:\n{job_desc}\n\n"
                     "Return only the cleaned-up job description without any additional text."
                 )

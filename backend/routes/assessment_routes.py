@@ -141,22 +141,40 @@ def submit_follow_up(data: FollowUpResponses):
 # Generate user profile and job matches
 # -----------------------------
 @router.post("/user-profile-match", response_model=UserProfileMatchResponse)
-def user_profile_match(request: SkillReflectionRequest, db: Session = Depends(get_db),):
+def user_profile_match(request: SkillReflectionRequest, db: Session = Depends(get_db)):
     user_test_id = request.user_test_id
+    
+    # Debug: Check if user exists
+    user_test = db.query(UserTest).filter(UserTest.id == user_test_id).first()
+    if not user_test:
+        return UserProfileMatchResponse(
+            profile_text="",
+            top_matches=[],
+            error=f"User test ID {user_test_id} not found"
+        )
 
     # Create user embedding + profile text
     user_data = create_user_embedding(user_test_id)
     if "error" in user_data:
         return UserProfileMatchResponse(
             profile_text="",
-            top_matches=[]
+            top_matches=[],
+            error=f"User embedding failed: {user_data['error']}"
         )
 
-    skills_knowledge_result = analyze_user_skills_knowledge(user_test_id)
-    if "error" in skills_knowledge_result:
-        print(f"[WARN] Skills/Knowledge analysis failed: {skills_knowledge_result['error']}")
-    else:
-        print(f"[INFO] Skills/Knowledge saved for user_test_id {user_test_id}")
+    # Analyze skills and knowledge with better error handling
+    try:
+        skills_knowledge_result = analyze_user_skills_knowledge(user_test_id)
+        if "error" in skills_knowledge_result:
+            print(f"[ERROR] Skills/Knowledge analysis failed: {skills_knowledge_result['error']}")
+            # You might want to return this error or handle it differently
+        else:
+            print(f"[INFO] Skills/Knowledge saved for user_test_id {user_test_id}")
+            print(f"Extracted skills: {skills_knowledge_result.get('skills', [])}")
+            print(f"Extracted knowledge: {skills_knowledge_result.get('knowledge', [])}")
+    except Exception as e:
+        print(f"[ERROR] Unexpected error in skills/knowledge analysis: {str(e)}")
+    
     
     # Match jobs
     matches = match_user_to_job(user_test_id, user_data["user_embedding"])
