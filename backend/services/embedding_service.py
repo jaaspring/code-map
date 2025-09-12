@@ -305,12 +305,25 @@ def match_user_to_job(
     similarities = cosine_similarity(user_vec, job_matrix)[0]  # shape: (num_jobs,)
 
     # Get indices of top 3 jobs (sorted by similarity score)
-    top_n = 3
-    top_indices = np.argsort(similarities)[-top_n:][::-1]  # descending order
+    top_n = min(3, len(similarities))
+    
+    # Get sorted indices
+    sorted_indices = np.argsort(similarities)[::-1]  # highest first
 
-    # Collect job info
+    # Deduplicate by job title before slicing
+    seen_titles = set()
+    unique_indices = []
+    for idx in sorted_indices:
+        title = df.iloc[idx].get("Title", "N/A")
+        if title not in seen_titles:
+            seen_titles.add(title)
+            unique_indices.append(idx)
+        if len(unique_indices) >= top_n:
+            break
+    
+    # Use unique_indices (deduplicated & limited to top_n)
     top_matches = []
-    for idx in top_indices:
+    for idx in unique_indices:
         job = df.iloc[idx]
         similarity_score = float(similarities[idx])
         similarity_percentage = round(similarity_score * 100, 2)
