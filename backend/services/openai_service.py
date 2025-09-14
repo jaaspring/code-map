@@ -64,15 +64,17 @@ def generate_questions(user_input: str):
     if language_for_scaffold.lower() != "none":
         coding_questions_text = call_openai(
             f"""Generate exactly 5 coding problems based on: '{topics}'.
-            - Must cover all of the programming languages extracted.
+            - Must cover all programming languages extracted.
             - Include a short code snippet in '{language_for_scaffold}' (≤30 lines).
             - Then write a question about that snippet.
+            - The question text must contain **both the code snippet and the actual question about the snippet** in the same "question" field.
             - Difficulty ratio: 1 Easy, 1 Medium, 3 Hard.
             - Format each question as code (triple backticks) + text.
             - Only self-contained examples, no APIs or external files.
+            - Use formal academic language appropriate for undergraduate or graduate students.
             - Do NOT include answers.
             - Return questions as JSON list, each object with:
-              {{"question": "...", "difficulty": "Easy/Medium/Hard", "category": "Coding"}}"""
+              {{"question": "<code snippet embedded in question> followed by the question text", "difficulty": "Easy/Medium/Hard", "category": "Coding"}}"""
         )
         # Robust parsing: remove empty items
         coding_questions = [
@@ -85,8 +87,10 @@ def generate_questions(user_input: str):
     non_coding_questions_text = call_openai(
         f"""Generate exactly 10 non-coding conceptual questions based on: '{topics}'.
         - No coding required.
-        - Must cover all of the topics extracted.
-        - Cover definitions, theory, practical applications.
+        - Use formal academic language suitable for college-level students.
+        - Cover definitions, theoretical concepts, practical applications, and real-world examples or practical applications.
+        - Include higher-order thinking questions (analysis, synthesis, evaluation), not just memorization.
+        - Ensure all topics are represented at least once.
         - Difficulty ratio: 1 Easy, 3 Medium, 6 Hard.
         - Return questions as JSON list, each object with:
           {{"question": "...", "difficulty": "Easy/Medium/Hard", "category": "Non-coding"}}"""
