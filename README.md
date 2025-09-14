@@ -28,3 +28,36 @@ Personalized career recommendation and skill gap analysis powered by AI.
 - **Database:** PostgreSQL
 - **AI / ML:** OpenAI API, Hugging Face Transformers  
 
+---
+
+## Project Structure
+
+```
+code_map/
+├── Frontend (Flutter)
+│   ├── lib/
+│   │   ├── models/          # Data models
+│   │   ├── screens/         # UI screens
+│   │   ├── services/        # API services and business logic
+│   │   └── main.dart        # Application entry point
+│   ├── android/             # Android-specific files
+│   ├── ios/                 # iOS-specific files
+│   ├── linux/               # Linux-specific files
+│   ├── macos/               # macOS-specific files
+│   ├── web/                 # Web-specific files
+│   ├── windows/             # Windows-specific files
+│   └── test/                # Test files
+│
+├── Backend (Python)
+│   ├── core/                # Core application logic
+│   ├── data/                # Data management
+│   ├── models/              # Database models
+│   ├── routes/              # API routes/endpoints
+│   ├── schemas/             # Data schemas (Pydantic)
+│   ├── services/            # Business logic services
+│   ├── venv/                # Python virtual environment
+│   ├── __pycache__/         # Python cache files
+│   ├── .env                 # Environment variables
+│   ├── main.py              # Application entry point
+│   └── requirements.txt     # Python dependencies
+```
