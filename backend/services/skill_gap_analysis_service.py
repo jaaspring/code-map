@@ -50,27 +50,27 @@ def compare_and_save(user_test_id: int, job_match_id: int, db: Session):
     # 4. Compare
     result = {"skills": {}, "knowledge": {}}
 
-# --- Skills
-for skill, req_level in req_skills.items():
-    user_level = user_skills.get(skill) or "Not Provided"  # default to Not Provided
-    status = "Achieved" if user_level != "Not Provided" else "Missing"
-    
-    result["skills"][skill] = {
-        "required_level": req_level,
-        "user_level": user_level,
-        "status": status
-    }
+    # --- Skills
+    for skill, req_level in req_skills.items():
+        user_level = user_skills.get(skill) or "Not Provided"  # default to Not Provided
+        status = "Achieved" if user_level != "Not Provided" else "Missing"
+        
+        result["skills"][skill] = {
+            "required_level": req_level,
+            "user_level": user_level,
+            "status": status
+        }
 
-# --- Knowledge
-for knowledge, req_level in req_knowledge.items():
-    user_level = user_knowledge.get(knowledge) or "Not Provided"
-    status = "Achieved" if user_level != "Not Provided" else "Missing"
-    
-    result["knowledge"][knowledge] = {
-        "required_level": req_level,
-        "user_level": user_level,
-        "status": status
-    }
+    # --- Knowledge
+    for knowledge, req_level in req_knowledge.items():
+        user_level = user_knowledge.get(knowledge) or "Not Provided"
+        status = "Achieved" if user_level != "Not Provided" else "Missing"
+        
+        result["knowledge"][knowledge] = {
+            "required_level": req_level,
+            "user_level": user_level,
+            "status": status
+        }
 
 
     # Save to DB (insert or update)
