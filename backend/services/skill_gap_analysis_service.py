@@ -1,18 +1,26 @@
 from sqlalchemy.orm import Session
 from models.assessment import UserSkillsKnowledge, CareerJobMatch, UserJobSkillMatch
 
+# Define level ranking for comparison
+LEVEL_ORDER = {
+    "Not Provided": 0,
+    "Weak": 1,
+    "Intermediate": 2,
+    "Advanced": 3
+}
+
 def compute_skill_gaps_for_all_jobs(user_test_id: int, db: Session):
     """
     Loop through all jobs in the DB and compute/save skill gaps for the given user.
     """
     results = []
 
-    # 1. Fetch all jobs
+    # Fetch all jobs
     all_jobs = db.query(CareerJobMatch).all()
     if not all_jobs:
         return {"error": "No jobs found in the database."}
 
-    # 2. Loop through each job and compute skill gap
+    # Loop through each job and compute skill gap
     for job in all_jobs:
         result = compare_and_save(user_test_id=user_test_id, job_match_id=job.job_index, db=db)
         results.append({
@@ -47,14 +55,20 @@ def compare_and_save(user_test_id: int, job_match_id: int, db: Session):
     req_skills = job_data.required_skills or {}
     req_knowledge = job_data.required_knowledge or {}
 
-    # 4. Compare
+    # Compare
     result = {"skills": {}, "knowledge": {}}
 
     # --- Skills
     for skill, req_level in req_skills.items():
-        user_level = user_skills.get(skill) or "Not Provided"  # default to Not Provided
-        status = "Achieved" if user_level != "Not Provided" else "Missing"
-        
+        user_level = user_skills.get(skill, "Not Provided")
+
+        if user_level == "Not Provided":
+            status = "Missing"
+        elif LEVEL_ORDER[user_level] >= LEVEL_ORDER[req_level]:
+            status = "Achieved"
+        else:
+            status = "Weak"  # user provided, but below requirement
+            
         result["skills"][skill] = {
             "required_level": req_level,
             "user_level": user_level,
@@ -63,8 +77,14 @@ def compare_and_save(user_test_id: int, job_match_id: int, db: Session):
 
     # --- Knowledge
     for knowledge, req_level in req_knowledge.items():
-        user_level = user_knowledge.get(knowledge) or "Not Provided"
-        status = "Achieved" if user_level != "Not Provided" else "Missing"
+        user_level = user_knowledge.get(knowledge, "Not Provided")
+
+        if user_level == "Not Provided":
+            status = "Missing"
+        elif LEVEL_ORDER[user_level] >= LEVEL_ORDER[req_level]:
+            status = "Achieved"
+        else:
+            status = "Weak"
         
         result["knowledge"][knowledge] = {
             "required_level": req_level,
