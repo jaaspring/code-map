@@ -26,7 +26,7 @@ Personalized career recommendation and skill gap analysis powered by AI.
 - **Backend:** FastAPI, Python, SQLAlchemy  
 - **Frontend:** Flutter  
 - **Database:** PostgreSQL
-- **AI / ML:** OpenAI API, Hugging Face Transformers  
+- **AI / ML:** OpenAI API, Hugging Face Transformers, LangChain  
 
 ---
 
