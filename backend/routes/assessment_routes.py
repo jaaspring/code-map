@@ -2,7 +2,14 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from core.database import SessionLocal, get_db
-from models.assessment import UserTest, GeneratedQuestion, FollowUpAnswers, CareerRecommendation, CareerJobMatch, UserSkillsKnowledge  # Add this line
+from models.assessment import (
+    UserTest,
+    GeneratedQuestion,
+    FollowUpAnswers,
+    CareerRecommendation,
+    CareerJobMatch,
+    UserSkillsKnowledge,
+)  # Add this line
 from schemas.assessment import (
     UserResponses,
     SkillReflectionRequest,
@@ -11,7 +18,11 @@ from schemas.assessment import (
     UserProfileMatchResponse,
 )
 from services.openai_service import generate_questions
-from services.embedding_service import create_user_embedding, match_user_to_job, analyze_user_skills_knowledge
+from services.embedding_service import (
+    create_user_embedding,
+    match_user_to_job,
+    analyze_user_skills_knowledge,
+)
 from services.skill_gap_analysis_service import compute_skill_gaps_for_all_jobs
 import json
 
@@ -33,6 +44,7 @@ def submit_test(data: UserResponses):
             programmingLanguages=prog_langs_str,
             courseworkExperience=data.courseworkExperience,
             skillReflection=data.skillReflection,
+            careerGoals=data.careerGoals,
         )
         db.add(new_entry)
         db.commit()
@@ -144,14 +156,14 @@ def submit_follow_up(data: FollowUpResponses):
 @router.post("/user-profile-match", response_model=UserProfileMatchResponse)
 def user_profile_match(request: SkillReflectionRequest, db: Session = Depends(get_db)):
     user_test_id = request.user_test_id
-    
+
     # Debug: Check if user exists
     user_test = db.query(UserTest).filter(UserTest.id == user_test_id).first()
     if not user_test:
         return UserProfileMatchResponse(
             profile_text="",
             top_matches=[],
-            error=f"User test ID {user_test_id} not found"
+            error=f"User test ID {user_test_id} not found",
         )
 
     # Create user embedding + profile text
@@ -160,28 +172,30 @@ def user_profile_match(request: SkillReflectionRequest, db: Session = Depends(ge
         return UserProfileMatchResponse(
             profile_text="",
             top_matches=[],
-            error=f"User embedding failed: {user_data['error']}"
+            error=f"User embedding failed: {user_data['error']}",
         )
 
     # Analyze skills and knowledge with better error handling
     try:
         skills_knowledge_result = analyze_user_skills_knowledge(user_test_id)
         if "error" in skills_knowledge_result:
-            print(f"[ERROR] Skills/Knowledge analysis failed: {skills_knowledge_result['error']}")
+            print(
+                f"[ERROR] Skills/Knowledge analysis failed: {skills_knowledge_result['error']}"
+            )
         else:
             print(f"[INFO] Skills/Knowledge saved for user_test_id {user_test_id}")
             print(f"Extracted skills: {skills_knowledge_result.get('skills', [])}")
-            print(f"Extracted knowledge: {skills_knowledge_result.get('knowledge', [])}")
+            print(
+                f"Extracted knowledge: {skills_knowledge_result.get('knowledge', [])}"
+            )
     except Exception as e:
         print(f"[ERROR] Unexpected error in skills/knowledge analysis: {str(e)}")
-    
-    
+
     # Match jobs
     matches = match_user_to_job(user_test_id, user_data["user_embedding"])
     if "error" in matches:
         return UserProfileMatchResponse(
-            profile_text=user_data["profile_text"],
-            top_matches=[]
+            profile_text=user_data["profile_text"], top_matches=[]
         )
 
     # Save into DB
@@ -196,30 +210,34 @@ def user_profile_match(request: SkillReflectionRequest, db: Session = Depends(ge
 
         # Insert job matches
         for job in matches["top_matches"]:
-            db.add(CareerJobMatch(
-                recommendation_id=rec.id,
-                job_index=job["job_index"],
-                similarity_score=job["similarity_score"],
-                similarity_percentage=job["similarity_percentage"],
-                job_title=job["job_title"],
-                job_description=job["job_description"],
-                required_skills=job["required_skills"],
-                required_knowledge=job["required_knowledge"],
-            ))
+            db.add(
+                CareerJobMatch(
+                    recommendation_id=rec.id,
+                    job_index=job["job_index"],
+                    similarity_score=job["similarity_score"],
+                    similarity_percentage=job["similarity_percentage"],
+                    job_title=job["job_title"],
+                    job_description=job["job_description"],
+                    required_skills=job["required_skills"],
+                    required_knowledge=job["required_knowledge"],
+                )
+            )
 
         db.commit()
     except Exception as e:
         db.rollback()
-        return UserProfileMatchResponse(profile_text=user_data["profile_text"], top_matches=[])
+        return UserProfileMatchResponse(
+            profile_text=user_data["profile_text"], top_matches=[]
+        )
 
     # Convert job dicts to JobMatch models
     top_matches_list = [JobMatch(**job) for job in matches["top_matches"]]
 
     # Return response to frontend
     return UserProfileMatchResponse(
-        profile_text=user_data["profile_text"],
-        top_matches=top_matches_list
+        profile_text=user_data["profile_text"], top_matches=top_matches_list
     )
+
 
 # -----------------------------
 # Skill & Knowledge Gap Analysis for All Jobs
