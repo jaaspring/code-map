@@ -55,3 +55,4 @@ backend/.env
 
 # Firebase / Service Account
 serviceAccountKey.json
+lib/firebase_options.dart
