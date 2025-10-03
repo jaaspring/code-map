@@ -17,6 +17,7 @@ Personalized career recommendation and skill gap analysis powered by AI.
 - **Generate Embeddings & Job Matches** _(leverages NLP for semantic similarity and matching)_  
 - **Career Recommendations** _(leverages NLP to tailor suggestions based on analyzed input and job data)_  
 - **Skill Gap Analysis** _(compares user skills and knowledge with job requirements using NLP)_
+- **Career Analysis Report** _(visualizes user skill gaps and test performance using radar and bar charts via Matplotlib)_
 
 
 ---
