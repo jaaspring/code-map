@@ -121,49 +121,6 @@ class _CareerRecommendationsScreenState
     });
   }
 
-  List<Widget> _formatProfileText(String text) {
-    final List<Widget> widgets = [];
-    String cleanedText = text
-        .replaceAll('*', '')
-        .replaceAll('#', '')
-        .replaceAll('- ', '')
-        .replaceAll('• ', '')
-        .trim();
-    final lines = cleanedText.split(';');
-
-    for (var line in lines) {
-      line = line.trim();
-      if (line.isEmpty) continue;
-      if (line.endsWith('.')) line = line.substring(0, line.length - 1);
-
-      widgets.add(Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ', style: TextStyle(fontSize: 16)),
-          Expanded(
-            child: Text(
-              line,
-              textAlign: TextAlign.left,
-              style: const TextStyle(fontSize: 16, height: 1.4),
-            ),
-          ),
-        ],
-      ));
-      widgets.add(const SizedBox(height: 8));
-    }
-
-    if (widgets.isEmpty) {
-      widgets.add(
-        Text(
-          text,
-          style: const TextStyle(fontSize: 16, height: 1.4),
-        ),
-      );
-    }
-
-    return widgets;
-  }
-
   Widget _buildJobCard(JobMatch job) {
     final bool isExpanded = _expandedCards[job.jobIndex] ?? false;
     final bool isSelected = _selectedJobIndex == job.jobIndex;
@@ -417,30 +374,6 @@ class _CareerRecommendationsScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          "Profile Summary",
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children:
-                              _formatProfileText(_profileMatch!.profileText),
-                        ),
-                      ),
                       const SizedBox(height: 24),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
@@ -478,9 +411,10 @@ class _CareerRecommendationsScreenState
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => SkillGapAnalysis(
+                                      builder: (context) =>
+                                          SkillGapAnalysisScreen(
                                         userTestId: widget.userTestId,
-                                        selectedJobId: selectedJob.dbJobIndex!,
+                                        jobIndex: selectedJob.dbJobIndex!,
                                       ),
                                     ),
                                   );

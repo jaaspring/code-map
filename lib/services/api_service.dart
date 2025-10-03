@@ -53,7 +53,7 @@ class ApiService {
   // Generate questions
   static Future<List<Map<String, dynamic>>> generateQuestions({
     required String skillReflection,
-    required String userTestId, // now String
+    required String userTestId,
   }) async {
     final url = Uri.parse("$baseUrl/generate-questions");
 
@@ -114,7 +114,7 @@ class ApiService {
 
   // Get user profile and job match
   static Future<UserProfileMatchResponse?> getUserProfileMatch({
-    required String userTestId, // now String
+    required String userTestId,
     String? skillReflection,
   }) async {
     final url = Uri.parse("$baseUrl/user-profile-match");
@@ -171,6 +171,20 @@ class ApiService {
     } else {
       throw Exception(
           "Error fetching gap analysis: ${response.statusCode} ${response.body}");
+    }
+  }
+
+// Generate Report
+  static Future<Map<String, dynamic>> generateReport(
+      String userTestId, String jobIndex) async {
+    final url = Uri.parse("$baseUrl/report-generation/$userTestId/$jobIndex");
+
+    final response = await http.post(url);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception("Failed to load report: ${response.statusCode}");
     }
   }
 }

@@ -50,7 +50,8 @@ def add_generated_question(
 
 def get_generated_questions(user_id: str):
     return [
-        q.to_dict()
+        # q.to_dict()
+        {**q.to_dict(), "id": q.id}  # include Firestore doc ID
         for q in db.collection("generated_questions")
         .where("user_test_id", "==", user_id)
         .stream()
@@ -128,6 +129,21 @@ def get_job_by_index(job_index: str):
             job_data = job_doc.to_dict()
             job_data["job_index"] = job_index
             return job_data
+    return None
+
+
+def get_profile_text_by_user(user_id: str) -> str | None:
+    """
+    Get the profile_text from career_recommendations for a given user_test_id.
+    Returns the first match (if multiple exist).
+    """
+    recs = (
+        db.collection("career_recommendations")
+        .where("user_test_id", "==", user_id)
+        .stream()
+    )
+    for rec in recs:
+        return rec.to_dict().get("profile_text")
     return None
 
 

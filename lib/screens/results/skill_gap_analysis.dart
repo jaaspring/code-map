@@ -1,21 +1,22 @@
+import 'package:code_map/screens/results/report.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 
-class SkillGapAnalysis extends StatefulWidget {
+class SkillGapAnalysisScreen extends StatefulWidget {
   final String userTestId;
-  final String selectedJobId;
+  final String jobIndex;
 
-  const SkillGapAnalysis({
+  const SkillGapAnalysisScreen({
     super.key,
     required this.userTestId,
-    required this.selectedJobId,
+    required this.jobIndex,
   });
 
   @override
-  State<SkillGapAnalysis> createState() => _SkillGapAnalysisState();
+  State<SkillGapAnalysisScreen> createState() => _SkillGapAnalysisScreenState();
 }
 
-class _SkillGapAnalysisState extends State<SkillGapAnalysis> {
+class _SkillGapAnalysisScreenState extends State<SkillGapAnalysisScreen> {
   Map<String, dynamic>? _gapData;
   bool _isLoading = true;
   String? _errorMessage;
@@ -34,13 +35,13 @@ class _SkillGapAnalysisState extends State<SkillGapAnalysis> {
           await ApiService.getGapAnalysis(userTestId: widget.userTestId);
 
       print("DEBUG: total gaps fetched = ${allGaps.length}");
-      print("DEBUG: looking for job_index = ${widget.selectedJobId}");
+      print("DEBUG: looking for job_index = ${widget.jobIndex}");
 
       Map<String, dynamic>? gapEntry;
       for (var g in allGaps) {
         final jobIndex = g["job_index"]?.toString()?.trim();
         print("DEBUG: found job_index = $jobIndex");
-        if (jobIndex == widget.selectedJobId.trim()) {
+        if (jobIndex == widget.jobIndex.trim()) {
           gapEntry = g;
           break;
         }
@@ -177,38 +178,81 @@ class _SkillGapAnalysisState extends State<SkillGapAnalysis> {
                     ),
                   ),
                 )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(
-                    children: [
-                      Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Suggested Career Path:",
-                                style:
-                                    TextStyle(fontSize: 16, color: Colors.grey),
+              : Column(
+                  children: [
+                    // Scrollable content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Suggested Career Path:",
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.grey),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _gapData?['job_title'] ?? 'Selected Job',
+                                    style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _gapData?['job_title'] ?? 'Selected Job',
-                                style: const TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          )),
-                      const SizedBox(height: 12),
-                      _buildTable(
-                          Map<String, dynamic>.from(_gapData?['skills'] ?? {}),
-                          "Skills"),
-                      _buildTable(
-                          Map<String, dynamic>.from(
-                              _gapData?['knowledge'] ?? {}),
-                          "Knowledge"),
-                    ],
-                  ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTable(
+                                Map<String, dynamic>.from(
+                                    _gapData?['skills'] ?? {}),
+                                "Skills"),
+                            _buildTable(
+                                Map<String, dynamic>.from(
+                                    _gapData?['knowledge'] ?? {}),
+                                "Knowledge"),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Buttons at the bottom
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ReportScreen(
+                                    userTestId: widget.userTestId,
+                                    jobIndex: widget.jobIndex,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                                "Generate Your IT Career Path Report"),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton(
+                            onPressed: () {
+                              // don't know yet :3
+                            },
+                            child: const Text("Complete"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
     );
   }

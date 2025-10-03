@@ -16,6 +16,7 @@ from services.embedding_service import (
     analyze_user_skills_knowledge,
 )
 from services.skill_gap_analysis_service import compute_skill_gaps_for_all_jobs
+from services.report_generation_service import get_report_data
 from models.firestore_models import (
     create_user_test,
     add_user_skills,
@@ -199,3 +200,12 @@ def run_gap_analysis_all(user_test_id: str):
     if isinstance(results, dict) and results.get("error"):
         return {"error": results["error"]}
     return {"message": "Skill gaps computed", "data": results}
+
+
+# -----------------------------
+# Report Generation
+# -----------------------------
+@router.post("/report-generation/{user_test_id}/{job_index}")
+def report_generation(user_test_id: str, job_index: str):
+    results = get_report_data(user_test_id, job_index)
+    return {"message": "Report generated", "data": results}
