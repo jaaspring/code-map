@@ -39,7 +39,7 @@ class _SkillGapAnalysisScreenState extends State<SkillGapAnalysisScreen> {
 
       Map<String, dynamic>? gapEntry;
       for (var g in allGaps) {
-        final jobIndex = g["job_index"]?.toString()?.trim();
+        final jobIndex = g["job_index"]?.toString().trim();
         print("DEBUG: found job_index = $jobIndex");
         if (jobIndex == widget.jobIndex.trim()) {
           gapEntry = g;

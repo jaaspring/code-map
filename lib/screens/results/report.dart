@@ -527,16 +527,3 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 }
-
-// Future<void> main() async {
-//   await dotenv.load(fileName: 'assets/.env');
-//   runApp(
-//     const MaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       home: ReportScreen(
-//         userTestId: "gsNn8VNYhkVSVtQftYvr",
-//         jobIndex: "2573",
-//       ),
-//     ),
-//   );
-// }
