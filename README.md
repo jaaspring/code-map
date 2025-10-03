@@ -31,7 +31,7 @@ Personalized career recommendation and skill gap analysis powered by AI.
 ---
 
 ## Class Diagram (UML) 
-<img width="7506" height="5299" alt="0250930_e421b2" src="https://github.com/user-attachments/assets/5ffedcc2-5962-45d4-88b6-7c0716ff676b" />
+<img width="8335" height="5141" alt="20251003_fbcc05" src="https://github.com/user-attachments/assets/199273ee-a2f4-47c0-bbb0-139c20599855" />
 
 ---
 
