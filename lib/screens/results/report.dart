@@ -450,10 +450,10 @@ class _ReportScreenState extends State<ReportScreen> {
                                 ],
 
                                 // Difficulty Chart
-                                if (reportData['charts']['difficulty_chart'] !=
+                                if (reportData['charts']['result_chart'] !=
                                     null) ...[
                                   const Text(
-                                    "Performance by Difficulty",
+                                    "Test Result Performance",
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,
@@ -474,46 +474,13 @@ class _ReportScreenState extends State<ReportScreen> {
                                       padding: const EdgeInsets.all(12),
                                       child: Image.memory(
                                         base64Decode(reportData['charts']
-                                            ['difficulty_chart']),
+                                            ['result_chart']),
                                         fit: BoxFit.contain,
                                         height: 250,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(height: 30),
-                                ],
-
-                                // Type Chart
-                                if (reportData['charts']['type_chart'] !=
-                                    null) ...[
-                                  const Text(
-                                    "Performance by Question Type",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Center(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.grey.shade200,
-                                          width: 1,
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.all(12),
-                                      child: Image.memory(
-                                        base64Decode(
-                                            reportData['charts']['type_chart']),
-                                        fit: BoxFit.contain,
-                                        height: 250,
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ],
                             ),
