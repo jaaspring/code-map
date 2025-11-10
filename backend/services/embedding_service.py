@@ -64,7 +64,7 @@ def normalize_option(opt: str) -> str:
 # -----------------------------
 def get_user_embedding_data(user_test_id: str) -> Dict[str, Any]:
     """
-    Fetch user responses and follow-up results; compute score; build combined_data.
+    Fetch user responses and follow-up results, compute score, build combined_data.
     score reflects how consistent/true the skillReflection is relative to follow-up answers.
     """
     # Fetch Firestore doc (dict)
@@ -78,15 +78,18 @@ def get_user_embedding_data(user_test_id: str) -> Dict[str, Any]:
         # Convert dict → Pydantic model
         user_res = UserResponses(**doc)
 
-        # Fetch follow-up answers
+        # Fetch all data once
         follow_ups = get_follow_up_answers_by_user(user_test_id)
+        user_questions = get_generated_questions(user_test_id)
+
+        # Build lookup table for O(1) question match
+        question_lookup = {q["id"]: q for q in user_questions}
 
         # Build results for scoring
         results: List[Dict[str, Any]] = []
         for f in follow_ups:
-            # get_generated_questions now returns a list of dicts
-            correct_q_list = get_generated_questions(str(f["question_id"]))
-            correct_q_data = correct_q_list[0] if correct_q_list else None
+            question_id = f["question_id"]
+            correct_q_data = question_lookup.get(question_id)
 
             is_correct = bool(
                 correct_q_data
@@ -96,7 +99,7 @@ def get_user_embedding_data(user_test_id: str) -> Dict[str, Any]:
 
             results.append(
                 {
-                    "question_id": f["question_id"],
+                    "question_id": question_id,
                     "question_text": (
                         correct_q_data.get("question_text") if correct_q_data else None
                     ),
@@ -114,7 +117,6 @@ def get_user_embedding_data(user_test_id: str) -> Dict[str, Any]:
         # Normalize programmingLanguages to a list (in case stored as JSON/text)
         prog_langs = user_res.programmingLanguages
         if isinstance(prog_langs, str):
-            # naive split fallback; replace with json.loads if you store JSON text
             prog_langs = [p.strip() for p in prog_langs.split(",") if p.strip()]
 
         # Build combined data
@@ -150,30 +152,28 @@ def analyze_user_skills_knowledge(user_test_id: str) -> Dict[str, Any]:
         return combined_data
 
     prompt = f"""
-    Analyze the student's profile data below.
+    Analyze the following student's data.
 
     INPUT DATA:
     {combined_data}
 
     TASK:
-    - Extract all TECHNICAL SKILLS from the user's skillReflection and follow-up answers.
-    - Assign a SKILL LEVEL for each: Basic, Intermediate, or Advanced.
-    - Extract all KNOWLEDGE AREAS (subject domains, concepts, methodologies) from the user's courseworkExperience and follow-up answers.
-    - Assign a KNOWLEDGE LEVEL for each: Basic, Intermediate, or Advanced.
-    - Be as specific as possible: if a skill or knowledge area is mentioned in context (e.g., 'Python with Django'), include both Python and Django separately.
-    - Include all skills and knowledge mentioned across answers, even if implied.
+    1. Extract **technical skills** from: skillReflection, programmingLanguages, follow_up_results.
+    2. Extract **knowledge areas** from: courseworkExperience, follow_up_results, thesisTopic, thesisFindings.
+    3. Assign a level (Basic, Intermediate, Advanced) to each skill/knowledge based on:
+        - Frequency and emphasis in answers
+        - Evidence from follow-up results
+        - Depth implied in projects or coursework
+    4. Be specific: e.g., "Python with Django" → "Python", "Django".
+    5. Include implied or contextual items, remove duplicates, keep the most specific term.
 
-    OUTPUT RULES:
-    - Respond STRICTLY in JSON format with exactly two keys: "skills" and "knowledge".
-    - Each key should map names to levels.
-    - Remove duplicates and keep the most specific term.
-    - Do NOT include explanations, comments, or markdown code blocks.
-    - Example:
+    OUTPUT:
+    Return ONLY valid JSON with two keys:
     {{
         "skills": {{"Python": "Basic", "Communication": "Intermediate"}},
         "knowledge": {{"Algorithms": "Basic", "Database Systems": "Basic"}}
     }}
-    - DO NOT use markdown code blocks
+    No markdown, comments, or extra text.
     """
 
     try:
@@ -221,16 +221,14 @@ def analyze_user_skills_knowledge(user_test_id: str) -> Dict[str, Any]:
 # -----------------------------
 def _build_profile_prompt(combined_data: Dict[str, Any]) -> str:
     """
-    Build a clear instruction that explains how to use score:
-    score = how consistent/true the user's skillReflection is vs. follow-up test.
+    Build a concise, evidence-based user profile for embedding.
     """
     return (
-        "Analyze the following user information and write a thorough, objective profile. "
-        "Focus on strengths, weaknesses, practical skills, and realistic next steps. "
-        "Interpret 'score' as the degree to which the user's skillReflection is confirmed "
-        "by follow-up test answers (higher = more accurate self-assessment). "
-        "Keep it evidence-based and specific. "
-        "Return exactly one descriptive paragraph.\n\n"
+        "Write a concise, objective profile of the user based on the data below. "
+        "Highlight technical skills, knowledge areas, strengths, weaknesses, and realistic next steps. "
+        "Use 'score' to weigh how accurate the user's self-assessed skills are (higher = more accurate). "
+        "Include only meaningful, evidence-based points. "
+        "Return exactly one paragraph.\n\n"
         f"USER DATA:\n{combined_data}\n\n"
     )
 
@@ -244,11 +242,6 @@ def generate_user_profile_text(combined_data: Dict[str, Any]) -> str:
 # Create user embedding
 # -----------------------------
 def create_user_embedding(user_test_id: str) -> Dict[str, Any]:
-    """
-    1) Collect combined_data (user responses + follow-up results + score)
-    2) Generate descriptive profile text via OpenAI
-    3) Convert profile text into an embedding via HF encoder
-    """
     combined_data = get_user_embedding_data(user_test_id)
     if "error" in combined_data:
         return combined_data
@@ -258,8 +251,8 @@ def create_user_embedding(user_test_id: str) -> Dict[str, Any]:
 
     return {
         "user_test_id": user_test_id,
-        "profile_text": profile_text,
-        "user_embedding": user_embedding,  # list[float]
+        "profile_text": profile_text,  # the generated summary paragraph of the user
+        "user_embedding": user_embedding,  # list[float], the vector representation for matching
         "combined_data": combined_data,  # included for debugging/inspection
     }
 
@@ -274,7 +267,6 @@ def match_user_to_job(
 ) -> Dict[str, Any]:
     """
     Compare user embedding to all job embeddings using cosine similarity.
-    df and job_embeddings are now global, no need to pass them.
     """
     # Check if globals are loaded correctly
     print(
@@ -373,13 +365,12 @@ def match_user_to_job(
         if use_openai_summary and original_job_desc != "N/A":
             try:
                 summary_prompt = (
-                    "Extract a clear, comprehensive job description from the text below. "
-                    "Focus on the relevant responsibilities of the career. "
-                    "Write it concisely in a professional tone (1 paragraph). "
+                    "Summarize the following job description in one concise, professional paragraph. "
+                    "Focus on core responsibilities and tasks of the career. "
                     "Start with 'This career involves...'"
                     "Avoid mentioning overly detailed information such as the company, years of experience, etc."
                     "Keep it under 400 characters.\n\n"
-                    f"JOB DESCRIPTION TEXT:\n{original_job_desc}\n\n"
+                    f"JOB DESCRIPTION:\n{original_job_desc}\n\n"
                     "Return only the cleaned-up job description without any additional text."
                 )
 
