@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:code_map/services/api_service.dart';
 import 'package:flutter/material.dart';
 
+import '../career_roadmap/career_roadmap.dart';
+
 class ReportScreen extends StatefulWidget {
   final String userTestId;
   final String jobIndex;
@@ -378,7 +380,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       ),
                       const SizedBox(height: 20),
 
-// Charts Card
+                      // Charts Card
                       if (reportData['charts'] != null) ...[
                         Card(
                           elevation: 2,
@@ -449,7 +451,7 @@ class _ReportScreenState extends State<ReportScreen> {
                                   const SizedBox(height: 30),
                                 ],
 
-                                // Difficulty Chart
+                                // Test Result Performance Chart
                                 if (reportData['charts']['result_chart'] !=
                                     null) ...[
                                   const Text(
@@ -488,6 +490,25 @@ class _ReportScreenState extends State<ReportScreen> {
                         ),
                         const SizedBox(height: 20),
                       ],
+                      // Button to Career Roadmap Screen
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => CareerRoadmap(
+                                      userTestId: widget.userTestId,
+                                      jobIndex: widget.jobIndex)));
+                        },
+                        child: const Text("View your Career Roadmap"),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () {
+                          // don't know yet :3
+                        },
+                        child: const Text("Complete"),
+                      ),
                     ],
                   ),
                 ),

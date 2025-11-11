@@ -208,6 +208,56 @@ def get_job_matches(recommendation_id: str):
     ]
 
 
+def get_job_match_doc(user_test_id: str, job_index: str):
+    """
+    Finds the recommendation_id and job_match_id for this user's job match.
+    """
+    all_recs = (
+        db.collection("career_recommendations")
+        .where("user_test_id", "==", user_test_id)
+        .stream()
+    )
+    for rec in all_recs:
+        rec_id = rec.id
+        job_doc = (
+            db.collection("career_recommendations")
+            .document(rec_id)
+            .collection("job_matches")
+            .document(job_index)
+            .get()
+        )
+        if job_doc.exists:
+            return rec_id, job_doc.id
+    return None, None
+
+
+def add_report_chart(
+    recommendation_id: str,
+    job_id: str,
+    radar_chart_base64: str,
+    bar_chart_base64: str,
+) -> str:
+    """
+    Adds or updates both radar and bar charts for a job match under a career recommendation.
+    """
+    recommendation_id = str(recommendation_id)
+    job_id = str(job_id)
+
+    chart_ref = (
+        db.collection("career_recommendations")
+        .document(recommendation_id)
+        .collection("job_matches")
+        .document(job_id)
+    )
+
+    chart_ref.set(
+        {"charts": {"radar_chart": radar_chart_base64, "bar_chart": bar_chart_base64}},
+        merge=True,  # preserves existing fields like skills, job_title, etc.
+    )
+
+    return chart_ref.id
+
+
 # -----------------------
 # UserSkillsKnowledge
 # -----------------------
@@ -262,6 +312,7 @@ def set_user_job_skill_match(
             "job_title": job_title,
         }
     )
+    print(f"[INFO] Saved job_skill_match: user={user_id}, job={job_match_id}")
 
 
 def get_user_job_skill_match(user_id: str, job_match_id: str) -> dict:

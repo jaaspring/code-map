@@ -1,7 +1,6 @@
 # backend/assessment_routes_firestore.py
 
 from fastapi import APIRouter
-from typing import List
 from schemas.assessment import (
     UserResponses,
     SkillReflectionRequest,
@@ -18,11 +17,13 @@ from services.embedding_service import (
 from services.skill_gap_analysis_service import compute_skill_gaps_for_all_jobs
 from services.report_generation_service import get_report_data
 from models.firestore_models import (
+    add_report_chart,
     create_user_test,
     add_user_skills,
     add_generated_question,
     add_career_recommendation,
     add_job_match,
+    get_job_match_doc,
 )
 from core.database import db  # Firestore client
 
@@ -218,5 +219,23 @@ def run_gap_analysis_all(user_test_id: str):
 # -----------------------------
 @router.post("/report-generation/{user_test_id}/{job_index}")
 def report_generation(user_test_id: str, job_index: str):
+    # Generate charts
     results = get_report_data(user_test_id, job_index)
-    return {"message": "Report generated", "data": results}
+    radar_chart = results["charts"]["radar_chart"]
+    bar_chart = results["charts"]["result_chart"]
+
+    # Get the correct Firestore document for this job match
+    recommendation_id, job_match_id = get_job_match_doc(user_test_id, job_index)
+    if not recommendation_id or not job_match_id:
+        return {"error": "Job match not found for this user."}
+
+    # Save both charts in the correct job match
+    chart_doc_id = add_report_chart(
+        recommendation_id, job_match_id, radar_chart, bar_chart
+    )
+
+    return {
+        "message": "Report generated and charts saved",
+        "chart_doc_id": chart_doc_id,
+        "data": results,
+    }
