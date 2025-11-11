@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -60,7 +61,7 @@ coding_questions_prompt = PromptTemplate(
 - Difficulty ratio: 1 Easy, 1 Medium, 3 Hard (if {count} >=5; else distribute proportionally).
 - Only self-contained examples, no APIs/external files.
 - Return as JSON array like:
-[{{"question": "```<CODE HERE>``` What does this code output?", "difficulty": "Easy/Medium/Hard", "category": "Coding"}}]""",
+[{{"question": "<CODE HERE> What does this code output?", "difficulty": "Easy/Medium/Hard", "category": "Coding"}}]""",
 )
 
 non_coding_questions_prompt = PromptTemplate(
@@ -80,7 +81,7 @@ coding_mcqs_prompt = PromptTemplate(
 {questions}
 - Keep difficulty/category unchanged.
 - Each question must have 4 options: A, B, C, D.
-- Only 1 option correct; indicate with "answer".
+- Only 1 option correct, indicate with "answer".
 - Options format example: "A. Option text"
 - Return as JSON array like:
 [{{"question": "...", "options": ["A","B","C","D"], "answer":"A", "difficulty":"Easy", "category":"Coding"}}]""",
@@ -92,7 +93,7 @@ non_coding_mcqs_prompt = PromptTemplate(
 {questions}
 - Keep difficulty/category unchanged.
 - Each question must have 4 options: A, B, C, D.
-- Only 1 option correct; indicate with "answer".
+- Only 1 option correct, indicate with "answer".
 - Options format example: "A. Option text"
 - Return as JSON array like:
 [{{"question": "...", "options": ["A","B","C","D"], "answer":"A", "difficulty":"Easy", "category":"Non-coding"}}]""",
@@ -115,6 +116,18 @@ coding_mcqs_chain = LLMChain(
 non_coding_mcqs_chain = LLMChain(
     llm=llm, prompt=non_coding_mcqs_prompt, output_parser=json_parser
 )
+
+
+def validate_and_fix_json(json_string):
+    """Validate and fix JSON structure if possible"""
+    try:
+        # First try to parse as-is
+        data = json.loads(json_string)
+        return data
+    except json.JSONDecodeError as e:
+        print(f"[DEBUG] JSON parse error: {e}")
+        print(f"[DEBUG] Problematic JSON: {json_string}")
+        return None
 
 
 # -----------------------------
@@ -180,7 +193,32 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
     if coding_questions:
         try:
             coding_mcqs_raw = coding_mcqs_chain.run({"questions": coding_questions})
-            coding_mcqs = coding_mcqs_raw if isinstance(coding_mcqs_raw, list) else []
+            coding_mcqs = (
+                coding_mcqs_raw
+                if isinstance(coding_mcqs_raw, list)
+                else coding_mcqs_raw
+            )
+            if not isinstance(coding_mcqs, list):
+                print("ERROR] Coding MCQs not a list")
+                coding_mcqs = []
+            else:
+                # validate each question has the correct structure
+                valid_questions = []
+                for q in coding_mcqs:
+                    if all(
+                        key in q
+                        for key in [
+                            "question",
+                            "options",
+                            "answer",
+                            "difficulty",
+                            "category",
+                        ]
+                    ):
+                        valid_questions.append(q)
+                    else:
+                        print(f"[WARNING] Skipping invalid question structure: {q}")
+                coding_mcqs = valid_questions
         except Exception as e:
             print("[ERROR] Failed coding MCQs:", e)
 
@@ -192,8 +230,31 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
                 {"questions": non_coding_questions}
             )
             non_coding_mcqs = (
-                non_coding_mcqs_raw if isinstance(non_coding_mcqs_raw, list) else []
+                non_coding_mcqs_raw
+                if isinstance(non_coding_mcqs_raw, list)
+                else non_coding_mcqs_raw
             )
+            if not isinstance(non_coding_mcqs, list):
+                print("[ERROR] Non-coding MCQs are not a list")
+                non_coding_mcqs = []
+            else:
+                # validate each question has the correct structure
+                valid_questions = []
+                for q in non_coding_mcqs:
+                    if all(
+                        key in q
+                        for key in [
+                            "question",
+                            "options",
+                            "answer",
+                            "difficulty",
+                            "category",
+                        ]
+                    ):
+                        valid_questions.append(q)
+                    else:
+                        print(f"[WARNING] Skipping invalid question structure: {q}")
+                non_coding_mcqs = valid_questions
         except Exception as e:
             print("[ERROR] Failed non-coding MCQs:", e)
 
