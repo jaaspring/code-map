@@ -92,16 +92,22 @@ def add_career_recommendation(user_id: str, profile_text: str) -> str:
     return rec_ref.id
 
 
-def get_all_jobs():
+def get_all_jobs(rec_id: str = None):
     """
-    Fetch all jobs across all recommendations.
+    Fetch all jobs across recommendations.
+    If rec_id is provided, fetch jobs only for that recommendation.
     """
     jobs = []
-    recs = db.collection("career_recommendations").stream()
-    for rec in recs:
+    recs = (
+        [rec_id]
+        if rec_id
+        else [rec.id for rec in db.collection("career_recommendations").stream()]
+    )
+
+    for r_id in recs:
         collection = (
             db.collection("career_recommendations")
-            .document(rec.id)
+            .document(r_id)
             .collection("job_matches")
         )
         for job_doc in collection.stream():
@@ -262,31 +268,34 @@ def get_job_match_doc(user_test_id: str, job_index: str):
     return None, None
 
 
-def add_report_chart(
-    recommendation_id: str,
-    job_id: str,
-    radar_chart_base64: str,
-    bar_chart_base64: str,
-) -> str:
-    """
-    Adds or updates both radar and bar charts for a job match under a career recommendation.
-    """
-    recommendation_id = str(recommendation_id)
-    job_id = str(job_id)
-
-    chart_ref = (
+def save_job_charts(rec_id: str, job_index: str, charts_data: dict):
+    """Save chart data for a specific job in the recommendation."""
+    job_ref = (
         db.collection("career_recommendations")
-        .document(recommendation_id)
+        .document(rec_id)
         .collection("job_matches")
-        .document(job_id)
+        .document(job_index)
     )
 
-    chart_ref.set(
-        {"charts": {"radar_chart": radar_chart_base64, "bar_chart": bar_chart_base64}},
-        merge=True,  # preserves existing fields like skills, job_title, etc.
+    # update the document with chart data
+    job_ref.update({"charts": charts_data})
+
+    return True
+
+
+def get_job_charts(rec_id: str, job_index: str):
+    """Retrieve chart data for a specific job."""
+    job_ref = (
+        db.collection("career_recommendations")
+        .document(rec_id)
+        .collection("job_matches")
+        .document(job_index)
     )
 
-    return chart_ref.id
+    job_data = job_ref.get()
+    if job_data.exists:
+        return job_data.to_dict().get("charts", {})
+    return {}
 
 
 # -----------------------

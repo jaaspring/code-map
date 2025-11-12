@@ -7,6 +7,7 @@ class JobMatch {
   final String jobDescription;
   Map<String, dynamic>? requiredSkills;
   Map<String, dynamic>? requiredKnowledge;
+  Map<String, dynamic>? chartData;
   final Map<String, dynamic>? comparison;
 
   String? dbJobIndex;
@@ -20,6 +21,7 @@ class JobMatch {
     required this.jobDescription,
     this.requiredSkills,
     this.requiredKnowledge,
+    this.chartData,
     this.comparison,
   });
 
@@ -35,6 +37,7 @@ class JobMatch {
             (json["required_skills"] as Map<String, dynamic>?) ?? {},
         requiredKnowledge:
             (json["required_knowledge"] as Map<String, dynamic>?) ?? {},
+        chartData: json["chart_data"] as Map<String, dynamic>?,
         comparison: json["comparison"] as Map<String, dynamic>?,
       );
 }

@@ -54,6 +54,7 @@ class _CareerRecommendationsScreenState
       });
 
       await _precomputeSkillGaps();
+      await _precomputeCharts();
 
       if (_profileMatch!.topMatches.isNotEmpty) {
         _selectedJobIndex = _profileMatch!.topMatches[0].jobIndex;
@@ -107,6 +108,19 @@ class _CareerRecommendationsScreenState
       print('Skill gaps computed for all jobs!');
     } catch (e) {
       print('Error computing skill gaps: $e');
+    }
+  }
+
+  Future<void> _precomputeCharts() async {
+    try {
+      print('STARTED: Triggering chart computation...');
+
+      // this API call tells the backend to compute/generate charts for all jobs
+      await ApiService.getCharts(userTestId: widget.userTestId);
+
+      print('SUCCESS: Chart computation triggered on backend!');
+    } catch (e) {
+      print('Error triggering chart computation: $e');
     }
   }
 

@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:code_map/services/api_service.dart';
 import 'package:flutter/material.dart';
-
 import '../career_roadmap/career_roadmap.dart';
 
 class ReportScreen extends StatefulWidget {

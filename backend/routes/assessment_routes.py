@@ -9,6 +9,9 @@ from schemas.assessment import (
     UserProfileMatchResponse,
 )
 from services.questions_generation_service import generate_questions
+from services.charts_generation_service import (
+    compute_and_save_charts_for_all_jobs,
+)
 from services.embedding_service import (
     create_user_embedding,
     match_user_to_job,
@@ -17,13 +20,11 @@ from services.embedding_service import (
 from services.skill_gap_analysis_service import compute_skill_gaps_for_all_jobs
 from services.report_generation_service import get_report_data
 from models.firestore_models import (
-    add_report_chart,
     create_user_test,
-    add_user_skills,
+    add_user_skills_knowledge,
     add_generated_question,
     add_career_recommendation,
     add_job_match,
-    get_job_match_doc,
 )
 from core.database import db  # Firestore client
 
@@ -47,7 +48,7 @@ def submit_test(data: UserResponses):
         "careerGoals": data.careerGoals,
     }
     user_id = create_user_test(doc_data)
-    add_user_skills(user_id, skills=[], knowledge=[])
+    add_user_skills_knowledge(user_id, skills=[], knowledge=[])
     return {"message": "Data saved successfully", "id": user_id}
 
 
@@ -215,27 +216,25 @@ def run_gap_analysis_all(user_test_id: str):
 
 
 # -----------------------------
-# Report Generation
+# Charts for All Jobs
 # -----------------------------
-@router.post("/report-generation/{user_test_id}/{job_index}")
-def report_generation(user_test_id: str, job_index: str):
-    # Generate charts
-    results = get_report_data(user_test_id, job_index)
-    radar_chart = results["charts"]["radar_chart"]
-    bar_chart = results["charts"]["result_chart"]
+@router.post("/generate-charts/all/{user_test_id}")
+def run_charts_all(user_test_id: str):
+    results = compute_and_save_charts_for_all_jobs(user_test_id)
+    if isinstance(results, dict) and results.get("error"):
+        return {"error": results["error"]}
+    return {"message": "Charts computed", "data": results}
 
-    # Get the correct Firestore document for this job match
-    recommendation_id, job_match_id = get_job_match_doc(user_test_id, job_index)
-    if not recommendation_id or not job_match_id:
-        return {"error": "Job match not found for this user."}
 
-    # Save both charts in the correct job match
-    chart_doc_id = add_report_chart(
-        recommendation_id, job_match_id, radar_chart, bar_chart
-    )
+# -----------------------------
+# Report Retrieval
+# -----------------------------
+@router.get("/report-retrieval/{user_test_id}/{job_index}")
+def get_report(user_test_id: str, job_index: str):
+    """Retrieve complete report data including saved charts."""
+    report_data = get_report_data(user_test_id, job_index)
 
-    return {
-        "message": "Report generated and charts saved",
-        "chart_doc_id": chart_doc_id,
-        "data": results,
-    }
+    if "error" in report_data:
+        return report_data
+
+    return {"message": "Report retrieved successfully", "data": report_data}

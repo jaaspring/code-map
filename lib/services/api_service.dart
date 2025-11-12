@@ -176,12 +176,46 @@ class ApiService {
     }
   }
 
-// Generate Report
+  // Get charts for all jobs
+  static Future<List<Map<String, dynamic>>> getCharts({
+    required String userTestId,
+  }) async {
+    final url = Uri.parse("$baseUrl/generate-charts/all/$userTestId");
+
+    final response = await _requestWithRetry(() => http.post(
+          url,
+          headers: {"Content-Type": "application/json"},
+        ));
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      // Extract the 'data' list from the backend response
+      if (decoded is Map && decoded.containsKey('data')) {
+        final data = decoded['data'];
+        if (data is List) {
+          // Ensure each item is a Map<String, dynamic>
+          return data.map<Map<String, dynamic>>((item) {
+            return Map<String, dynamic>.from(item);
+          }).toList();
+        }
+        throw Exception(
+            "Expected 'data' to be a List, but got: ${data.runtimeType}");
+      }
+      throw Exception(
+          "Unexpected response format for all charts: ${decoded.runtimeType}");
+    } else {
+      throw Exception(
+          "Error fetching charts: ${response.statusCode} ${response.body}");
+    }
+  }
+
+// Retrieve Report
   static Future<Map<String, dynamic>> generateReport(
       String userTestId, String jobIndex) async {
-    final url = Uri.parse("$baseUrl/report-generation/$userTestId/$jobIndex");
+    final url = Uri.parse("$baseUrl/report-retrieval/$userTestId/$jobIndex");
 
-    final response = await http.post(url);
+    final response = await http.get(url);
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
