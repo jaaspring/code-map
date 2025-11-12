@@ -1,6 +1,6 @@
 from models.firestore_models import (
     get_job_by_index,
-    get_user_skills,
+    get_user_skills_knowledge,
     get_all_jobs,
     get_recommendation_id_by_user_test_id,
     set_user_job_skill_match,
@@ -42,7 +42,7 @@ def compute_skill_gaps_for_all_jobs(user_test_id: str):
 
 
 def compare_and_save(user_test_id: str, job_match_id: str):
-    user_data = get_user_skills(user_test_id)
+    user_data = get_user_skills_knowledge(user_test_id)
     if not user_data:
         return {"gap_analysis": {"skills": {}, "knowledge": {}}, "job_title": "N/A"}
 

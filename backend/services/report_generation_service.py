@@ -1,7 +1,7 @@
 from models.firestore_models import (
     get_profile_text_by_user,
     get_job_by_index,
-    get_user_skills,
+    get_user_skills_knowledge,
     get_generated_questions,
     get_follow_up_answers_by_user,
 )
@@ -130,7 +130,7 @@ def get_report_data(user_test_id: str, job_index: str):
     """Combine profile_text and job details into a single report."""
     profile_text = get_profile_text_by_user(user_test_id)
     job_data = get_job_by_index(job_index)
-    user_data = get_user_skills(user_test_id)
+    user_data = get_user_skills_knowledge(user_test_id)
 
     job_skills_raw = job_data.get("required_skills", {})
     user_skills_raw = user_data.get("skills", {})

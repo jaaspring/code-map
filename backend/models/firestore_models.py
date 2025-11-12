@@ -1,5 +1,3 @@
-# backend/firestore_models.py
-
 from core.database import db
 
 
@@ -302,7 +300,7 @@ def add_user_skills(user_id: str, skills: dict, knowledge: dict):
     user_ref.set({"skills": skills, "knowledge": knowledge}, merge=True)
 
 
-def get_user_skills(user_id: str) -> dict:
+def get_user_skills_knowledge(user_id: str) -> dict:
     """
     Fetch a user's skills and knowledge from Firestore.
     Returns a dict: {"skills": {...}, "knowledge": {...}} or empty dict if not found.
