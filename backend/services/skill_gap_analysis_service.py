@@ -2,6 +2,7 @@ from models.firestore_models import (
     get_job_by_index,
     get_user_skills,
     get_all_jobs,
+    get_recommendation_id_by_user_test_id,
     set_user_job_skill_match,
 )
 
@@ -10,12 +11,18 @@ LEVEL_ORDER = {"Not Provided": 0, "Basic": 1, "Intermediate": 2, "Advanced": 3}
 
 def compute_skill_gaps_for_all_jobs(user_test_id: str):
     results = []
-    all_jobs = (
-        get_all_jobs()
-    )  # retrievs all jobs from career recommendations for this user test id
-    if not all_jobs:
-        return {"error": "No jobs found in the database."}
 
+    # retrieve recommendation id from career recommendations
+    rec_id = get_recommendation_id_by_user_test_id(user_test_id)
+    if not rec_id:
+        return {"error": "No career recommendation found for this user test ID."}
+
+    # retrieve all job matched from career recommendations for this recommendation
+    all_jobs = get_all_jobs()
+    if not all_jobs:
+        return {"error": "No jobs found for this recommendation."}
+
+    # compute gaps
     for job in all_jobs:
         gap_result = compare_and_save(user_test_id, str(job["job_index"]))
 
