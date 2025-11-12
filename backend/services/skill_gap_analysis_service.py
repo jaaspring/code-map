@@ -17,7 +17,7 @@ def compute_skill_gaps_for_all_jobs(user_test_id: str):
     if not rec_id:
         return {"error": "No career recommendation found for this user test ID."}
 
-    # retrieve all job matched from career recommendations for this recommendation
+    # retrieve all job matches from career recommendations for this recommendation
     all_jobs = get_all_jobs()
     if not all_jobs:
         return {"error": "No jobs found for this recommendation."}
