@@ -37,7 +37,7 @@ class _SkillReflectionTestState extends State<SkillReflectionTest> {
   }
 
   void _onCompletePressed() {
-    final text = _controller.text.trim(); // Remove leading/trailing spaces
+    final text = _controller.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

@@ -25,7 +25,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
   String? _selectedOption;
   final FollowUpResponses followUpResponses = FollowUpResponses(responses: []);
 
-  /// Save or update the current question's answer
+  // save or update the current question's answer
   void _saveCurrentAnswer() {
     final questionId = widget.questions[_currentIndex]['id'];
     if (questionId == null) return;
@@ -34,7 +34,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
         .indexWhere((r) => r.questionId == questionId);
 
     if (existingIndex >= 0) {
-      // Update only if _selectedOption is not null
+      // update only if _selectedOption is not null
       if (_selectedOption != null) {
         followUpResponses.responses[existingIndex].selectedOption =
             _selectedOption;
@@ -48,7 +48,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
     }
   }
 
-  /// Navigate to a specific question index
+  // navigate to a specific question index
   void _goToQuestion(int index) {
     _saveCurrentAnswer();
     setState(() {
@@ -61,7 +61,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
     });
   }
 
-  /// Handle Next button
+  // handle Next button
   Future<void> _nextQuestion() async {
     if (_selectedOption == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -74,7 +74,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
     if (_currentIndex < widget.questions.length - 1) {
       _goToQuestion(_currentIndex + 1);
     } else {
-      // Last question -> submit all answers
+      // last question -> submit all answers
       try {
         await ApiService.submitFollowUpResponses(responses: followUpResponses);
         if (!mounted) return;

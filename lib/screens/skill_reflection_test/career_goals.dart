@@ -35,7 +35,7 @@ class _CareerGoalsState extends State<CareerGoals> {
   }
 
   void _onCompletePressed() {
-    final text = _controller.text.trim(); // Remove leading/trailing spaces
+    final text = _controller.text.trim(); // remove leading/trailing spaces
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

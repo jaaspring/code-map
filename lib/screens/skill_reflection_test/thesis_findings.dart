@@ -109,7 +109,7 @@ class _ThesisFindingsState extends State<ThesisFindings> {
             ),
             const SizedBox(height: 10),
 
-            // Character counter + progress bar
+            // character counter + progress bar
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
