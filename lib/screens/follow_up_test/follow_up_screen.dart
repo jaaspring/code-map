@@ -23,25 +23,6 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
   @override
   void initState() {
     super.initState();
-    _preWarmBackend();
-  }
-
-  Future<void> _preWarmBackend() async {
-    try {
-      print("Checking backend health at: ${ApiService.baseUrl}/health");
-      final response = await http
-          .get(Uri.parse("${ApiService.baseUrl}/health"))
-          .timeout(const Duration(seconds: 8));
-
-      if (response.statusCode == 200) {
-        setState(() => _isBackendReady = true);
-        print("Backend is ready! Response: ${response.body}");
-      } else {
-        print("Backend responded but with status code: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Backend not ready yet: $e");
-    }
   }
 
   Future<void> _startFollowUp(BuildContext context) async {
@@ -146,7 +127,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
               child: Text(
-                "First load might take longer. Please be patient...",
+                "Please check your connection and try again",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.orange, fontSize: 14),
               ),
