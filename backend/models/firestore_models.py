@@ -236,13 +236,22 @@ def add_job_match(
 
 
 def get_job_matches(recommendation_id: str):
-    return [
-        job.to_dict()
-        for job in db.collection("career_recommendations")
+    """
+    Get all job matches for a recommendation, including job_index (document ID)
+    """
+    jobs = []
+    collection = (
+        db.collection("career_recommendations")
         .document(recommendation_id)
         .collection("job_matches")
-        .stream()
-    ]
+    )
+
+    for job_doc in collection.stream():
+        job_data = job_doc.to_dict()
+        job_data["job_index"] = job_doc.id  # Add the document ID as job_index
+        jobs.append(job_data)
+
+    return jobs
 
 
 def get_job_match_doc(user_test_id: str, job_index: str):
@@ -268,6 +277,7 @@ def get_job_match_doc(user_test_id: str, job_index: str):
     return None, None
 
 
+# charts
 def save_job_charts(rec_id: str, job_index: str, charts_data: dict):
     """Save chart data for a specific job in the recommendation."""
     job_ref = (
@@ -374,3 +384,37 @@ def get_user_job_skill_matches(user_id: str) -> list[dict]:
         .collection("job_skill_matches")
         .stream()
     ]
+
+
+# -----------------------
+# CareerRoadmap
+# -----------------------
+def create_career_roadmap(
+    user_test_id: str, job_index: str, rec_id: str, topics: dict, sub_topics: dict
+) -> str:
+    """
+    Create a career roadmap for a user and specific job.
+    Document ID structure: {user_test_id}_{job_index}
+    This allows easy retrieval by user + job combination.
+    """
+    roadmap_id = f"{user_test_id}_{job_index}"
+    roadmap_ref = db.collection("career_roadmap").document(roadmap_id)
+    roadmap_ref.set(
+        {
+            "user_test_id": user_test_id,  # reference to user_tests
+            "job_index": job_index,
+            "rec_id": rec_id,  # reference to career_recommendations
+            "topics": topics,
+            "sub_topics": sub_topics,
+        }
+    )
+    return roadmap_ref.id
+
+
+def get_career_roadmap(user_test_id: str, job_index: str) -> dict:
+    """
+    Fetch a specific user's career roadmap for a job.
+    """
+    roadmap_id = f"{user_test_id}_{job_index}"
+    doc = db.collection("career_roadmap").document(roadmap_id).get()
+    return doc.to_dict() if doc.exists else None

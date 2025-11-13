@@ -1,3 +1,5 @@
+// calls APIs, sends HTTP requests, and receives responses.
+
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -31,7 +33,7 @@ class ApiService {
   static final String baseUrl =
       dotenv.env['BASE_URL'] ?? "http://localhost:8000";
 
-  // Submit the initial test and return the generated userTestId (String)
+  // submit the initial test and return the generated userTestId (String)
   static Future<String> submitTest(UserResponses responses) async {
     final url = Uri.parse("$baseUrl/submit-test");
 
@@ -50,7 +52,7 @@ class ApiService {
     }
   }
 
-  // Generate questions
+  // generate questions
   static Future<List<Map<String, dynamic>>> generateQuestions({
     required String skillReflection,
     required String thesisFindings,
@@ -93,7 +95,7 @@ class ApiService {
     }
   }
 
-  // Send follow-up answers to backend
+  // send follow-up answers to backend
   static Future<void> submitFollowUpResponses({
     required FollowUpResponses responses,
   }) async {
@@ -114,7 +116,7 @@ class ApiService {
     }
   }
 
-  // Get user profile and job match
+  // get user profile and job match
   static Future<UserProfileMatchResponse?> getUserProfileMatch({
     required String userTestId,
     String? skillReflection,
@@ -141,7 +143,7 @@ class ApiService {
     }
   }
 
-  // Get skill and knowledge gap analysis for all jobs
+  // get skill and knowledge gap analysis for all jobs
   static Future<List<Map<String, dynamic>>> getGapAnalysis({
     required String userTestId,
   }) async {
@@ -176,7 +178,7 @@ class ApiService {
     }
   }
 
-  // Get charts for all jobs
+  // get charts for all jobs
   static Future<List<Map<String, dynamic>>> getCharts({
     required String userTestId,
   }) async {
@@ -210,7 +212,7 @@ class ApiService {
     }
   }
 
-// Retrieve Report
+// retrieve Report
   static Future<Map<String, dynamic>> generateReport(
       String userTestId, String jobIndex) async {
     final url = Uri.parse("$baseUrl/report-retrieval/$userTestId/$jobIndex");
@@ -224,11 +226,10 @@ class ApiService {
     }
   }
 
-  // Generate Career Roadmap
-  static Future<Map<String, dynamic>> generateCareerRoadmap(
-      String userTestId, String jobIndex) async {
-    final url =
-        Uri.parse("$baseUrl/career-roadmap-generation/$userTestId/$jobIndex");
+  // generate Career Roadmaps for all jobs
+  static Future<Map<String, dynamic>> generateCareerRoadMaps(
+      String userTestId) async {
+    final url = Uri.parse("$baseUrl/career-roadmap-generation/all/$userTestId");
 
     final response = await http.post(url);
 
@@ -236,6 +237,36 @@ class ApiService {
       return json.decode(response.body);
     } else {
       throw Exception("Failed to load career roadmap: ${response.statusCode}");
+    }
+  }
+
+  // retrieve Career Roadmap Report for this user and job index
+  static Future<Map<String, dynamic>> getCareerRoadmap(
+      String userTestId, String jobIndex) async {
+    final url =
+        Uri.parse("$baseUrl/career-roadmap-retrieval/$userTestId/$jobIndex");
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception("Failed to load report: ${response.statusCode}");
+    }
+  }
+
+  // get all recommended jobs for a user
+  static Future<Map<String, dynamic>> getAllRecommendedJobs(
+      String userTestId) async {
+    final url = Uri.parse("$baseUrl/career-recommendations/$userTestId");
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception(
+          "Failed to load recommended jobs: ${response.statusCode}");
     }
   }
 }

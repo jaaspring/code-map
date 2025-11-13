@@ -1,4 +1,4 @@
-# backend/assessment_routes_firestore.py
+# acts as the API endpoint. It receives requests from Dart, performs the computation or data retrieval, and returns a response.
 
 from fastapi import APIRouter
 from schemas.assessment import (
@@ -25,6 +25,12 @@ from models.firestore_models import (
     add_generated_question,
     add_career_recommendation,
     add_job_match,
+    get_job_matches,
+    get_recommendation_id_by_user_test_id,
+)
+from services.career_roadmaps_service import (
+    compute_career_roadmaps,
+    retrieve_career_roadmap,
 )
 from core.database import db  # Firestore client
 
@@ -144,7 +150,7 @@ def user_profile_match(request: SkillReflectionRequest):
             error=f"User embedding failed: {user_data.get('error', 'Unknown error') if user_data else 'No data returned'}",
         )
 
-    # Analyze skills/knowledge
+    # analyze skills/knowledge
     try:
         skills_knowledge_result = analyze_user_skills_knowledge(request.user_test_id)
         if skills_knowledge_result and "error" not in skills_knowledge_result:
@@ -158,7 +164,7 @@ def user_profile_match(request: SkillReflectionRequest):
     except Exception as e:
         print(f"[ERROR] Skills/Knowledge analysis failed: {str(e)}")
 
-    # Match jobs
+    # match jobs
     matches = match_user_to_job(request.user_test_id, user_data.get("user_embedding"))
     if not matches or "error" in matches:
         return UserProfileMatchResponse(
@@ -166,7 +172,7 @@ def user_profile_match(request: SkillReflectionRequest):
             top_matches=[],
         )
 
-    # Save into Firestore
+    # save into Firestore
     try:
         rec_id = add_career_recommendation(
             request.user_test_id, profile_text=user_data.get("profile_text", "")
@@ -208,6 +214,7 @@ def user_profile_match(request: SkillReflectionRequest):
 # Skill & Knowledge Gap Analysis for All Jobs
 # -----------------------------
 @router.post("/gap-analysis/all/{user_test_id}")
+# FastAPI automatically extracts user_test_id from the URL and passes it as the function argument.
 def run_gap_analysis_all(user_test_id: str):
     results = compute_skill_gaps_for_all_jobs(user_test_id)
     if isinstance(results, dict) and results.get("error"):
@@ -219,6 +226,7 @@ def run_gap_analysis_all(user_test_id: str):
 # Charts for All Jobs
 # -----------------------------
 @router.post("/generate-charts/all/{user_test_id}")
+# FastAPI automatically extracts user_test_id from the URL and passes it as the function argument.
 def run_charts_all(user_test_id: str):
     results = compute_and_save_charts_for_all_jobs(user_test_id)
     if isinstance(results, dict) and results.get("error"):
@@ -230,6 +238,7 @@ def run_charts_all(user_test_id: str):
 # Report Retrieval
 # -----------------------------
 @router.get("/report-retrieval/{user_test_id}/{job_index}")
+# FastAPI automatically extracts user_test_id and job_index from the URL and passes it as the function argument.
 def get_report(user_test_id: str, job_index: str):
     """Retrieve complete report data including saved charts."""
     report_data = get_report_data(user_test_id, job_index)
@@ -238,3 +247,68 @@ def get_report(user_test_id: str, job_index: str):
         return report_data
 
     return {"message": "Report retrieved successfully", "data": report_data}
+
+
+# -----------------------------
+# Career Roadmaps for All Jobs
+# -----------------------------
+@router.post(
+    "/career-roadmap-generation/all/{user_test_id}"
+)  # FastAPI automatically extracts user_test_id from the URL and passes it as the function argument.
+def generate_career_roadmaps(user_test_id: str):
+    """Retrieve career roadmaps for all jobs."""
+    career_roadmap = compute_career_roadmaps(user_test_id)
+
+    if "error" in career_roadmap:
+        return career_roadmap
+
+    return {"message": "Career roadmaps generated successfully", "data": career_roadmap}
+
+
+# -----------------------------
+# Career Roadmap Retrieval
+# -----------------------------
+@router.get("/career-roadmap-retrieval/{user_test_id}/{job_index}")
+# FastAPI automatically extracts user_test_id and job_index from the URL and passes it as the function argument.
+def get_career_roadmap(user_test_id: str, job_index: str):
+    """Retrieve career roadmap for a specific job."""
+    roadmap_data = retrieve_career_roadmap(user_test_id, job_index)
+
+    if "error" in roadmap_data:
+        return roadmap_data
+
+    return {"message": "Career roadmap retrieved successfully", "data": roadmap_data}
+
+
+# career recommendations retrieval
+@router.get("/career-recommendations/{user_test_id}")
+def get_all_recommended_jobs(user_test_id: str):
+    """Get all recommended jobs for a user."""
+    try:
+        # get recommendation ID for the user
+        rec_id = get_recommendation_id_by_user_test_id(user_test_id)
+        if not rec_id:
+            return {"error": "No career recommendation found for this user test ID."}
+
+        # get all job matches for this recommendation
+        jobs = get_job_matches(rec_id)
+
+        # format the response with job_index and job_title
+        formatted_jobs = []
+        for job in jobs:
+            # since job_matches documents use job_index as document ID
+            # we need to get the document ID as job_index
+            # this requires a slight modification to get_job_matches
+            formatted_jobs.append(
+                {
+                    "job_index": job.get("job_index", ""),
+                    "job_title": job.get("job_title", "Unknown Title"),
+                }
+            )
+
+        return {
+            "message": "Recommended jobs retrieved successfully",
+            "data": formatted_jobs,
+        }
+    except Exception as e:
+        return {"error": f"Failed to retrieve recommended jobs: {str(e)}"}
