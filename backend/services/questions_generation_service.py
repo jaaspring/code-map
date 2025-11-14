@@ -26,7 +26,7 @@ llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
 # -----------------------------
 SYSTEM_MESSAGE = SystemMessage(
     content="""
-You are an academic question generator for computer science topics.
+You are an academic question generator for IT topics.
 - Generate coding and non-coding questions based on given topics.
 - Output valid JSON only.
 - Include difficulty (Easy/Medium/Hard) and category (Coding/Non-coding).
@@ -86,7 +86,7 @@ Requirements:
 - Each question must have 4 options: A, B, C, D
 - Only 1 option correct, indicate with "answer"
 - Options format: ["A. Option text", "B. Option text", "C. Option text", "D. Option text"]
-- Return PURE JSON only, no markdown code blocks, no explanations
+- Return JSON only, no markdown code blocks, no explanations
 - Structure: [{{"question": "...", "options": ["A...","B...","C...","D..."], "answer":"A", "difficulty":"Easy", "category":"Coding"}}]
 
 IMPORTANT: Output must be valid JSON only, no ```json or any other text:""",
@@ -102,10 +102,9 @@ Requirements:
 - Each question must have 4 options: A, B, C, D
 - Only 1 option correct, indicate with "answer"
 - Options format: ["A. Option text", "B. Option text", "C. Option text", "D. Option text"]
-- Return PURE JSON only, no markdown code blocks, no explanations
+- Return JSON only, no markdown code blocks, no explanations
 - Structure: [{{"question": "...", "options": ["A...","B...","C...","D..."], "answer":"A", "difficulty":"Easy", "category":"Non-coding"}}]
-
-IMPORTANT: Output must be valid JSON only, no ```json or any other text:""",
+""",
 )
 
 # -----------------------------
@@ -119,7 +118,7 @@ coding_questions_chain = LLMChain(
 non_coding_questions_chain = LLMChain(
     llm=llm, prompt=non_coding_questions_prompt, output_parser=json_parser
 )
-# Remove JsonOutputParser from MCQ chains since they return markdown-wrapped JSON
+# remove JsonOutputParser from MCQ chains since they return markdown-wrapped JSON
 coding_mcqs_chain = LLMChain(llm=llm, prompt=coding_mcqs_prompt)
 non_coding_mcqs_chain = LLMChain(llm=llm, prompt=non_coding_mcqs_prompt)
 
@@ -130,13 +129,13 @@ def extract_json_from_response(text):
         return text
 
     if isinstance(text, str):
-        # Try to parse as pure JSON first
+        # try to parse as pure JSON first
         try:
             return json.loads(text)
         except json.JSONDecodeError:
             pass
 
-        # Extract JSON from markdown code blocks
+        # extract JSON from markdown code blocks
         json_match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
         if json_match:
             json_str = json_match.group(1).strip()
@@ -145,7 +144,7 @@ def extract_json_from_response(text):
             except json.JSONDecodeError:
                 pass
 
-        # Try to find JSON array pattern
+        # try to find JSON array pattern
         array_match = re.search(r"(\[.*\])", text, re.DOTALL)
         if array_match:
             try:
@@ -164,7 +163,7 @@ def validate_question_structure(questions):
             key in q
             for key in ["question", "options", "answer", "difficulty", "category"]
         ):
-            # Also validate options is a list with 4 elements
+            # validate options is a list with 4 elements
             if isinstance(q["options"], list) and len(q["options"]) == 4:
                 valid_questions.append(q)
             else:
@@ -195,11 +194,11 @@ def call_openai(prompt: str, max_token=2000) -> str:
 def generate_questions(skill_reflection: str, thesis_findings: str, career_goals: str):
     user_input = f"Skill Reflection: {skill_reflection}\nThesis Findings: {thesis_findings}\nCareer Goals: {career_goals}"
 
-    # Extract topics
+    # extract topics
     topics = topics_chain.run({"user_input": user_input}).strip()
     print("\n[DEBUG] Extracted topics:", topics)
 
-    # Extract programming languages
+    # extract programming languages
     all_languages_text = languages_chain.run({"topics": topics}).strip()
     language_list = (
         []
@@ -208,7 +207,7 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
     )
     print("[DEBUG] Languages list:", language_list)
 
-    # Generate coding questions
+    # generate coding questions
     coding_questions = []
     total_coding_questions = 5
     if language_list:
@@ -230,7 +229,7 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
             except Exception as e:
                 print(f"[ERROR] Failed coding questions for {lang}:", e)
 
-    # Generate non-coding questions
+    # generate non-coding questions
     try:
         non_coding_questions = non_coding_questions_chain.run({"topics": topics})
         if not isinstance(non_coding_questions, list):
@@ -239,7 +238,7 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
         print("[ERROR] Failed non-coding questions:", e)
         non_coding_questions = []
 
-    # Convert coding questions to MCQs
+    # convert coding questions to MCQs
     coding_mcqs = []
     if coding_questions:
         try:
@@ -257,7 +256,7 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
             print("[ERROR] Failed coding MCQs:", e)
             print(f"[DEBUG] Raw output: {coding_mcqs_raw}")
 
-    # Convert non-coding questions to MCQs
+    # convert non-coding questions to MCQs
     non_coding_mcqs = []
     if non_coding_questions:
         try:
