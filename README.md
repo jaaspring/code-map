@@ -18,6 +18,7 @@ Personalized career recommendation and skill gap analysis powered by AI.
 - **Career Recommendations** _(leverages NLP to tailor suggestions based on analyzed input and job data)_  
 - **Skill Gap Analysis** _(compares user skills and knowledge with job requirements using NLP)_
 - **Career Analysis Report** _(visualizes user skill gaps and test performance using radar and bar charts via Matplotlib)_
+- **Career Roadmap** _(generates structured career progression paths based on skill gap analysis using NLP)_
 
 
 ---
