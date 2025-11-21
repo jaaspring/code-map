@@ -148,12 +148,25 @@ class _CareerGoalsState extends State<CareerGoals> {
             ),
 
             const SizedBox(height: 20),
-            _isSubmitting
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _onCompletePressed,
-                    child: const Text("Complete"),
-                  ),
+            ElevatedButton(
+              onPressed: _isSubmitting ? null : _onCompletePressed,
+              child: _isSubmitting
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Text("Complete"),
+            ),
           ],
         ),
       ),
