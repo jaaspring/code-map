@@ -525,15 +525,11 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       );
     }
 
-    // Single scrollable column that includes both roadmap header and levels
     return Expanded(
       child: ListView(
         children: [
-          // Personalized Career Roadmap header - now part of the scrollable content
           _buildRoadmapHeader(),
           const SizedBox(height: 20),
-
-          // Levels with connecting arrows
           ..._buildLevels(),
         ],
       ),
@@ -657,7 +653,6 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
         _buildLevelCard(levelName, topicsMap, i, levelNames.length),
       );
 
-      // Add longer connecting arrow between levels (except for the last one)
       if (i < levelNames.length - 1) {
         levelWidgets.add(
           Container(
@@ -723,7 +718,6 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       ),
       child: Stack(
         children: [
-          // Progress line on the left
           Positioned(
             left: 0,
             top: 0,
@@ -1008,7 +1002,6 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Improved header
             const Text(
               'Your Career Journey',
               style: TextStyle(
@@ -1029,11 +1022,11 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
             ),
             const SizedBox(height: 20),
 
-            // Dropdown job selector
+            // dropdown job selector
             _buildJobSelector(),
             const SizedBox(height: 24),
 
-            // Roadmap content - now a single scrollable area
+            // roadmap content
             _buildRoadmapContent(),
           ],
         ),
