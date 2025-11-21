@@ -33,13 +33,13 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
 
   Future<void> _loadData() async {
     try {
-      // Load all recommended jobs first
+      // load all recommended jobs first
       await _loadRecommendedJobs();
 
-      // Generate all career roadmaps for the user
+      // generate all career roadmaps for the user
       await ApiService.generateCareerRoadMaps(widget.userTestId);
 
-      // Load the initial career roadmap
+      // load the initial career roadmap
       await _loadCareerRoadmap();
     } catch (e) {
       setState(() {
@@ -61,7 +61,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
           isLoadingJobs = false;
         });
 
-        // Set current job title if available
+        // set current job title if available
         if (currentJobIndex != null) {
           _setCurrentJobTitle();
         }
@@ -86,22 +86,22 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       final results = await ApiService.getCareerRoadmap(
           widget.userTestId, currentJobIndex!);
 
-      // Extract the data
+      // extract the data
       final responseData = results['data'];
       if (responseData == null) {
         throw Exception('No data in response');
       }
 
-      // The actual roadmap data is in responseData['data']
+      // the actual roadmap data is in responseData['data']
       final roadmapData = responseData['data'];
       if (roadmapData == null) {
         throw Exception('No roadmap data found');
       }
 
-      // Transform the data into the structure needed for the UI
+      // transform the data into the structure needed for the UI
       final Map<String, Map<String, List<String>>> levels = {};
 
-      // Process topics and sub_topics
+      // process topics and sub_topics
       if (roadmapData['topics'] != null && roadmapData['sub_topics'] != null) {
         final topics = Map<String, dynamic>.from(roadmapData['topics']);
         final subTopics = Map<String, dynamic>.from(roadmapData['sub_topics']);
@@ -165,108 +165,169 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     }
   }
 
-  void _onJobSelected(String jobIndex, String jobTitle) {
+  void _onJobSelected(String? jobIndex) {
+    if (jobIndex == null) return;
+
+    final job = recommendedJobs.firstWhere(
+      (job) => job['job_index'] == jobIndex,
+      orElse: () => {'job_title': 'Unknown Title'},
+    );
+
     setState(() {
       currentJobIndex = jobIndex;
-      currentJobTitle = jobTitle;
+      currentJobTitle = job['job_title'];
     });
     _loadCareerRoadmap();
   }
 
   Widget _buildJobSelector() {
     if (isLoadingJobs) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (recommendedJobs.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[300]!),
         ),
-        child: const Text(
-          'No recommended jobs found',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(strokeWidth: 2),
+            SizedBox(width: 12),
+            Text(
+              'Loading careers...',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return SizedBox(
-      height: 120,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: recommendedJobs.length,
-        itemBuilder: (context, index) {
-          final job = recommendedJobs[index];
-          final jobIndex = job['job_index'];
-          final jobTitle = job['job_title'];
-          final isSelected = currentJobIndex == jobIndex;
-
-          return Container(
-            width: 200,
-            margin: EdgeInsets.only(
-              right: 12,
-              left: index == 0 ? 0 : 0,
+    if (recommendedJobs.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.work_off_outlined,
+              size: 20,
+              color: Colors.grey[400],
             ),
-            child: Card(
-              elevation: 2,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.grey[300]!,
-                  width: 2,
+            const SizedBox(width: 12),
+            Text(
+              'No recommended jobs found',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: DropdownButton<String>(
+          value: currentJobIndex,
+          isExpanded: true,
+          underline: const SizedBox(), // Remove default underline
+          icon: Icon(
+            Icons.arrow_drop_down_rounded,
+            color: Colors.grey[600],
+            size: 24,
+          ),
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.black87,
+            fontWeight: FontWeight.w500,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          dropdownColor: Colors.white,
+          onChanged: _onJobSelected,
+          items: [
+            // Default hint item
+            const DropdownMenuItem<String>(
+              value: null,
+              child: Text(
+                'Select a career path',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 14,
                 ),
               ),
-              child: InkWell(
-                onTap: () => _onJobSelected(jobIndex, jobTitle),
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+            ),
+            // Career items
+            ...recommendedJobs.map<DropdownMenuItem<String>>((job) {
+              final jobIndex = job['job_index'];
+              final jobTitle = job['job_title'];
+              final index = recommendedJobs.indexOf(job);
+
+              return DropdownMenuItem<String>(
+                value: jobIndex,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
                     children: [
-                      Text(
-                        'Career #${index + 1}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected ? Colors.white : Colors.grey[600],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Career #${index + 1}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey[700],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        jobTitle.length > 20
-                            ? '${jobTitle.substring(0, 20)}...'
-                            : jobTitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'ID: $jobIndex',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isSelected ? Colors.white70 : Colors.grey,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          jobTitle,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ),
-          );
-        },
+              );
+            }).toList(),
+          ],
+        ),
       ),
     );
   }
@@ -278,9 +339,16 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading your career roadmap...'),
+              CircularProgressIndicator(strokeWidth: 3),
+              SizedBox(height: 20),
+              Text(
+                'Loading your career roadmap...',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),
@@ -290,63 +358,132 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     if (errorMessage != null) {
       return Expanded(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red[300],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Error loading roadmap',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                errorMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _loadCareerRoadmap,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.red[200]!, width: 1.5),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline_rounded,
+                    size: 48,
+                    color: Colors.red[400],
+                  ),
                 ),
-                child: const Text('Try Again'),
-              ),
-            ],
+                const SizedBox(height: 20),
+                Text(
+                  'Error loading roadmap',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red[900],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.red[800],
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _loadCareerRoadmap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[600],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: const Text(
+                    'Try Again',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     if (roadmap == null) {
-      return const Expanded(
+      return Expanded(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.school_outlined,
-                size: 64,
-                color: Colors.grey,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Nothing to see here D:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Complete your assessments to unlock your\npersonalized career roadmap!',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey[300]!, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.school_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Nothing to see here D:',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Complete your assessments to unlock your\npersonalized career roadmap!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -354,73 +491,125 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
 
     final levels = roadmap?['levels'] as Map<String, dynamic>?;
     if (levels == null || levels.isEmpty) {
-      return const Expanded(
+      return Expanded(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.auto_stories_outlined,
-                size: 64,
-                color: Colors.grey,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'No roadmap data available',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            ],
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.auto_stories_outlined,
+                  size: 56,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No roadmap data available',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
+    // Single scrollable column that includes both roadmap header and levels
     return Expanded(
+      child: ListView(
+        children: [
+          // Personalized Career Roadmap header - now part of the scrollable content
+          _buildRoadmapHeader(),
+          const SizedBox(height: 20),
+
+          // Levels with connecting arrows
+          ..._buildLevels(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoadmapHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Colors.grey[50]!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[300]!, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with job title - matching your Figma design
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+                child: Icon(
+                  Icons.route_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
                   'Personalized Career Roadmap',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.primary,
+                    letterSpacing: 0.2,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  currentJobTitle ?? 'Unknown Career',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            currentJobTitle ?? 'Unknown Career',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+              height: 1.2,
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Roadmap levels
-          Expanded(
-            child: ListView(
-              children: _buildLevels(),
+          const SizedBox(height: 8),
+          Text(
+            'Your step-by-step learning journey to become a ${currentJobTitle ?? 'professional'}',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -432,8 +621,16 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     final levels = roadmap?['levels'] as Map<String, dynamic>?;
     if (levels == null || levels.isEmpty) {
       return [
-        const Center(
-          child: Text('No roadmap levels available'),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: const Center(
+            child: Text('No roadmap levels available'),
+          ),
         ),
       ];
     }
@@ -441,7 +638,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     final levelWidgets = <Widget>[];
     final levelNames = levels.keys.toList();
 
-    // Sort levels in logical order
+    // sort levels in logical order
     levelNames.sort((a, b) {
       final order = {
         'Beginner': 0,
@@ -457,21 +654,48 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       final topicsMap = Map<String, dynamic>.from(levels[levelName]!);
 
       levelWidgets.add(
-        _buildLevelCard(levelName, topicsMap, i),
+        _buildLevelCard(levelName, topicsMap, i, levelNames.length),
       );
 
-      // Add spacing between levels
+      // Add longer connecting arrow between levels (except for the last one)
       if (i < levelNames.length - 1) {
-        levelWidgets.add(const SizedBox(height: 24));
+        levelWidgets.add(
+          Container(
+            height: 50, // Longer arrow
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.arrow_downward_rounded,
+                    color: Colors.grey[500],
+                    size: 28,
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    height: 2,
+                    width: 3,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    height: 2,
+                    width: 3,
+                    color: Colors.grey[400],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
       }
     }
 
     return levelWidgets;
   }
 
-  Widget _buildLevelCard(
-      String levelName, Map<String, dynamic> topicsMap, int levelIndex) {
-    // Different colors for different levels like in your Figma
+  Widget _buildLevelCard(String levelName, Map<String, dynamic> topicsMap,
+      int levelIndex, int totalLevels) {
+    // Different colors for different levels
     final levelColors = [
       const Color(0xFF4CAF50), // Beginner - Green
       const Color(0xFF2196F3), // Intermediate - Blue
@@ -481,92 +705,179 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
 
     final backgroundColor = levelColors[levelIndex % levelColors.length];
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: backgroundColor.withOpacity(0.3),
-            width: 2,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: backgroundColor.withOpacity(0.3),
+          width: 2.5,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Level header - matching your Figma
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: backgroundColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: backgroundColor.withOpacity(0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      levelName,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: backgroundColor,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${topicsMap.length} ${topicsMap.length == 1 ? 'Topic' : 'Topics'}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
+        boxShadow: [
+          BoxShadow(
+            color: backgroundColor.withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Progress line on the left
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: 4,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    backgroundColor.withOpacity(0.8),
+                    backgroundColor.withOpacity(0.4),
                   ],
                 ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                ),
               ),
-              const SizedBox(height: 20),
-
-              // Topics list - clean layout like your Figma
-              if (topicsMap.isNotEmpty)
-                ...topicsMap.entries.map((entry) {
-                  final topicName = entry.key;
-                  final subTopics = List<String>.from(entry.value ?? []);
-                  return _buildTopicCard(topicName, subTopics, backgroundColor);
-                }).toList()
-              else
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // level header with improved design
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'No topics for this level',
-                      style: TextStyle(color: Colors.grey),
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        backgroundColor.withOpacity(0.15),
+                        backgroundColor.withOpacity(0.08),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: backgroundColor.withOpacity(0.4),
+                      width: 1.5,
                     ),
                   ),
+                  child: Row(
+                    children: [
+                      // Level indicator with number
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: backgroundColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: backgroundColor.withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${levelIndex + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              levelName,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: backgroundColor,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Step ${levelIndex + 1} of $totalLevels',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: backgroundColor.withOpacity(0.8),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: backgroundColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${topicsMap.length} ${topicsMap.length == 1 ? 'Area' : 'Areas'}',
+                          style: TextStyle(
+                            color: backgroundColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-            ],
+                const SizedBox(height: 20),
+
+                // Topics list with improved visual hierarchy
+                if (topicsMap.isNotEmpty)
+                  ...topicsMap.entries.map((entry) {
+                    final topicName = entry.key;
+                    final subTopics = List<String>.from(entry.value ?? []);
+                    return _buildTopicCard(
+                        topicName, subTopics, backgroundColor);
+                  }).toList()
+                else
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No learning areas for this level',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -578,58 +889,89 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Colors.grey[200]!, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Topic name
-            Text(
-              topicName,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+            // Topic name with improved design
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.only(top: 8, right: 12),
+                  decoration: BoxDecoration(
+                    color: levelColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        topicName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      if (subTopics.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        // Subtopic list with arrow indicators
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: subTopics
+                              .map((subTopic) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8.0),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                              top: 4.0, right: 10.0),
+                                          child: Icon(
+                                            Icons.arrow_forward_ios_rounded,
+                                            size: 12,
+                                            color: levelColor.withOpacity(0.7),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            subTopic,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey[700],
+                                              height: 1.5,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ))
+                              .toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-
-            // Subtopic list - clean bullet points
-            if (subTopics.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: subTopics
-                    .map((subTopic) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding:
-                                    const EdgeInsets.only(top: 2.0, right: 8.0),
-                                child: Icon(
-                                  Icons.circle,
-                                  size: 6,
-                                  color: levelColor,
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  subTopic,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black54,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ))
-                    .toList(),
-              ),
           ],
         ),
       ),
@@ -639,48 +981,59 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8F9FC),
       appBar: AppBar(
         title: const Text(
           'Career Roadmap',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: 0.3,
           ),
         ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: Colors.black87,
         elevation: 0,
         centerTitle: false,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: Colors.grey[200],
+            height: 1,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header matching your Figma
-            Text(
-              'Your Recommended Careers',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Select a career to view its detailed learning path',
+            // Improved header
+            const Text(
+              'Your Career Journey',
               style: TextStyle(
-                color: Colors.grey[600],
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: Colors.black87,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Select a career path and follow the learning roadmap',
+              style: TextStyle(
                 fontSize: 14,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 20),
 
-            // Job selector
+            // Dropdown job selector
             _buildJobSelector(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
-            // Roadmap content
+            // Roadmap content - now a single scrollable area
             _buildRoadmapContent(),
           ],
         ),
