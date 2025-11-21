@@ -55,7 +55,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               if (!_isBackendReady) const SizedBox(height: 10),
               if (!_isBackendReady)
                 const Text(
-                  "Subsequent loads will be faster!",
+                  "This will take a few minutes!",
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
             ],
