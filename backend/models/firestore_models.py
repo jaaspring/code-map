@@ -1,4 +1,5 @@
 from core.database import db
+from google.cloud import firestore
 
 
 # -----------------------
@@ -31,6 +32,7 @@ def add_generated_question(
     answer=None,
     difficulty=None,
     question_type=None,
+    test_attempt=1,  # default to value 1 for first attempt
 ) -> str:
     question_ref = db.collection("generated_questions").document()
     question_ref.set(
@@ -41,19 +43,43 @@ def add_generated_question(
             "answer": answer,
             "difficulty": difficulty,
             "question_type": question_type,
+            "test_attempt": test_attempt,
+            "created_at": firestore.SERVER_TIMESTAMP,
         }
     )
     return question_ref.id
 
 
 def get_generated_questions(user_id: str):
+    latest_attempt = get_next_attempt(user_id) - 1
+    if latest_attempt == 0:
+        return []
+
     return [
-        # q.to_dict()
-        {**q.to_dict(), "id": q.id}  # include Firestore doc ID
+        {**q.to_dict(), "id": q.id}
         for q in db.collection("generated_questions")
         .where("user_test_id", "==", user_id)
+        .where("test_attempt", "==", latest_attempt)
         .stream()
     ]
+
+
+def get_next_attempt(user_id: str) -> int:
+    """
+    Get the next test attempt number for a user.
+    """
+    attempts = (
+        db.collection("generated_questions")
+        .where("user_test_id", "==", user_id)
+        .select(["test_attempt"])
+        .stream()
+    )
+    max_attempt = 0
+    for doc in attempts:
+        data = doc.to_dict()
+        if "test_attempt" in data and data["test_attempt"] > max_attempt:
+            max_attempt = data["test_attempt"]
+    return max_attempt + 1  # next attempt number
 
 
 # -----------------------
