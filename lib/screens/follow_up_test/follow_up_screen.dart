@@ -48,7 +48,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               Text(
                 _isBackendReady
                     ? "Generating your questions..."
-                    : "Initializing assessment system",
+                    : "Checking for existing questions...",
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
@@ -65,18 +65,54 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     );
 
     try {
-      // generate follow-up questions
-      final questions = await ApiService.generateQuestions(
+      // check for existing generated questions first
+      List<Map<String, dynamic>> questions;
+
+      try {
+        questions = await ApiService.getGeneratedQuestions(
+          userTestId: widget.userTestId,
+        );
+
+        if (questions.isNotEmpty) {
+          print(
+              "Found ${questions.length} existing questions for user ${widget.userTestId}");
+          // use existing questions - no need to generate new ones
+          setState(() => _isBackendReady = true);
+
+          if (Navigator.canPop(context)) Navigator.pop(context);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FollowUpTest(
+                userTestId: widget.userTestId,
+                userResponse: widget.userResponse,
+                questions: questions,
+              ),
+            ),
+          );
+          return; // exit early since we have existing questions
+        }
+      } catch (e) {
+        print("No existing questions found or error retrieving: $e");
+        // continue to generate new questions
+      }
+
+      // if no existing questions found, generate new ones
+      print("No existing questions found, generating new ones...");
+      questions = await ApiService.generateQuestions(
         skillReflection: widget.userResponse.skillReflection,
         thesisFindings: widget.userResponse.thesisFindings,
         careerGoals: widget.userResponse.careerGoals,
-        userTestId: widget.userTestId, // use the passed userTestId
+        userTestId: widget.userTestId,
       );
 
-      print("Questions received: $questions");
+      print("New questions generated: ${questions.length}");
 
       if (questions.isNotEmpty) {
         setState(() => _isBackendReady = true);
+
+        if (Navigator.canPop(context)) Navigator.pop(context);
 
         Navigator.pushReplacement(
           context,
