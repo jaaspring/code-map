@@ -23,6 +23,8 @@ from models.firestore_models import (
     create_user_test,
     add_user_skills_knowledge,
     add_generated_question,
+    get_generated_questions,
+    get_next_attempt,
     add_career_recommendation,
     add_job_match,
     get_job_matches,
@@ -75,6 +77,9 @@ def create_follow_up_questions(data: SkillReflectionRequest):
     if not skill_reflection and not thesis_findings and not career_goals:
         return {"error": "Insufficient data to generate questions"}
 
+    # get the next attempt number
+    next_attempt = get_next_attempt(data.user_test_id)
+
     # pass all three into service (allowing service to handle None/empty)
     result = generate_questions(
         skill_reflection=skill_reflection,
@@ -93,6 +98,7 @@ def create_follow_up_questions(data: SkillReflectionRequest):
                 answer=q.get("answer", ""),
                 difficulty=q.get("difficulty", "easy"),
                 question_type=q.get("category", "general"),
+                test_attempt=next_attempt,
             )
             saved_questions.append(
                 {
@@ -102,12 +108,22 @@ def create_follow_up_questions(data: SkillReflectionRequest):
                     "answer": q.get("answer", ""),
                     "difficulty": q.get("difficulty", "easy"),
                     "category": q.get("category", "general"),
+                    "test_attempt": next_attempt,
                 }
             )
         except Exception as e:
             print(f"[ERROR] Failed to save question: {str(e)}")
 
     return {"questions": saved_questions}
+
+
+# -----------------------------
+# Retrieve generated follow-up questions
+# -----------------------------
+@router.get("/get-generated-questions/{user_test_id}")
+def get_all_generated_questions(user_test_id: str):
+    questions = get_generated_questions(user_test_id)
+    return {"questions": questions}
 
 
 # -----------------------------
