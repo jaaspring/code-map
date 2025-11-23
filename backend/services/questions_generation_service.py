@@ -57,12 +57,13 @@ languages_prompt = PromptTemplate(
 coding_questions_prompt = PromptTemplate(
     input_variables=["topics", "lang", "count"],
     template="""Generate {count} coding problems based on: '{topics}' in '{lang}'.
-- Include code snippet (≤30 lines) and question about it.
-- Embed code and question in JSON field "question".
-- Difficulty ratio: 1 Easy, 1 Medium, 3 Hard (if {count} >=5; else distribute proportionally).
-- Only self-contained examples, no APIs/external files.
+- Present incomplete code, buggy code, or output prediction questions 
+- Question types allowed: output prediction, identify the bug, complete the missing logic (no markdown blocks)  
+- Code must not be a complete runnable program. It must contai a bug, missing lines, or a tricky behavior suitable for MCQs
+- Difficulty ratio: 1 Easy, 1 Medium, 3 Hard (if {count} >=5; else distribute proportionally)
+- Only self-contained examples, no APIs/external files
 - Return as JSON array like:
-[{{"question": "<CODE HERE> What does this code output?", "difficulty": "Easy/Medium/Hard", "category": "Coding"}}]""",
+[{{"question": "...", "code": "...", "language": "{lang}", "difficulty": "Easy/Medium/Hard", "category": "Coding"}}]""",
 )
 
 non_coding_questions_prompt = PromptTemplate(
@@ -83,11 +84,12 @@ coding_mcqs_prompt = PromptTemplate(
 
 Requirements:
 - Keep difficulty/category unchanged
-- Each question must have 4 options: A, B, C, D
+- Each question must have 4 equally difficult and plausible options: A, B, C, D
 - Only 1 option correct, indicate with "answer"
 - Options format: ["A. Option text", "B. Option text", "C. Option text", "D. Option text"]
+- Preserve the 'code' and 'language' fields from original questions
 - Return JSON only, no markdown code blocks, no explanations
-- Structure: [{{"question": "...", "options": ["A...","B...","C...","D..."], "answer":"A", "difficulty":"Easy", "category":"Coding"}}]
+- Structure: [{{"question": "...", "code": "...", "language": "...", "options": ["A...","B...","C...","D..."], "answer":"A", "difficulty":"Easy", "category":"Coding"}}]
 
 IMPORTANT: Output must be valid JSON only, no ```json or any other text:""",
 )
@@ -99,7 +101,7 @@ non_coding_mcqs_prompt = PromptTemplate(
 
 Requirements:
 - Keep difficulty/category unchanged
-- Each question must have 4 options: A, B, C, D
+- Each question must have 4 equally difficult and plausible options: A, B, C, D
 - Only 1 option correct, indicate with "answer"
 - Options format: ["A. Option text", "B. Option text", "C. Option text", "D. Option text"]
 - Return JSON only, no markdown code blocks, no explanations
@@ -118,7 +120,6 @@ coding_questions_chain = LLMChain(
 non_coding_questions_chain = LLMChain(
     llm=llm, prompt=non_coding_questions_prompt, output_parser=json_parser
 )
-# remove JsonOutputParser from MCQ chains since they return markdown-wrapped JSON
 coding_mcqs_chain = LLMChain(llm=llm, prompt=coding_mcqs_prompt)
 non_coding_mcqs_chain = LLMChain(llm=llm, prompt=non_coding_mcqs_prompt)
 
@@ -159,38 +160,36 @@ def validate_question_structure(questions):
     """Validate that each question has the required structure"""
     valid_questions = []
     for q in questions:
-        if isinstance(q, dict) and all(
-            key in q
-            for key in ["question", "options", "answer", "difficulty", "category"]
-        ):
-            # validate options is a list with 4 elements
-            if isinstance(q["options"], list) and len(q["options"]) == 4:
-                valid_questions.append(q)
-            else:
-                print(
-                    f"[WARNING] Skipping question with invalid options: {q.get('options')}"
-                )
-        else:
-            missing_keys = [
-                k
-                for k in ["question", "options", "answer", "difficulty", "category"]
-                if k not in q
-            ]
-            print(f"[WARNING] Skipping question missing keys {missing_keys}")
+        if not isinstance(q, dict):
+            continue
+
+        # for all questions, only require question, difficulty, category
+        required_fields = ["question", "options", "answer", "difficulty", "category"]
+
+        # check if basic fields exist
+        if not all(key in q for key in required_fields):
+            continue
+
+        # if it's a coding question, check for code and language
+        if q.get("category") == "Coding":
+            if "code" not in q or "language" not in q:
+                continue
+
+        # validate options
+        if "options" in q:
+            if not (isinstance(q["options"], list) and len(q["options"]) == 4):
+                continue
+
+        # validate answer
+        if "answer" in q:
+            if q["answer"] not in ["A", "B", "C", "D"]:
+                continue
+
+        valid_questions.append(q)
+
     return valid_questions
 
 
-# -----------------------------
-# OpenAI Call Helper
-# -----------------------------
-def call_openai(prompt: str, max_token=2000) -> str:
-    response = llm(SYSTEM_MESSAGE | HumanMessage(content=prompt))
-    return response.content.strip()
-
-
-# -----------------------------
-# Generate Questions Function
-# -----------------------------
 def generate_questions(skill_reflection: str, thesis_findings: str, career_goals: str):
     user_input = f"Skill Reflection: {skill_reflection}\nThesis Findings: {thesis_findings}\nCareer Goals: {career_goals}"
 
@@ -198,14 +197,12 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
     topics = topics_chain.run({"user_input": user_input}).strip()
     print("\n[DEBUG] Extracted topics:", topics)
 
-    # extract programming languages
+    # extract programming languages with filtering
     all_languages_text = languages_chain.run({"topics": topics}).strip()
-    language_list = (
-        []
-        if all_languages_text.lower() == "none"
-        else [lang.strip() for lang in all_languages_text.split(",")]
-    )
-    print("[DEBUG] Languages list:", language_list)
+    language_list = []
+    if all_languages_text != "none":
+        language_list = [lang.strip() for lang in all_languages_text.split(",")]
+    print("[DEBUG] Filtered languages list:", language_list)
 
     # generate coding questions
     coding_questions = []
@@ -226,6 +223,9 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
                 )
                 if isinstance(coding_json, list):
                     coding_questions.extend(coding_json)
+                    print(
+                        f"[SUCCESS] Generated {len(coding_json)} questions for {lang}"
+                    )
             except Exception as e:
                 print(f"[ERROR] Failed coding questions for {lang}:", e)
 
@@ -247,14 +247,12 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
 
             if not isinstance(coding_mcqs, list):
                 print(f"[ERROR] Coding MCQs are not a list. Type: {type(coding_mcqs)}")
-                print(f"[DEBUG] Raw output: {coding_mcqs_raw}")
                 coding_mcqs = []
             else:
                 coding_mcqs = validate_question_structure(coding_mcqs)
 
         except Exception as e:
             print("[ERROR] Failed coding MCQs:", e)
-            print(f"[DEBUG] Raw output: {coding_mcqs_raw}")
 
     # convert non-coding questions to MCQs
     non_coding_mcqs = []
@@ -266,17 +264,12 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
             non_coding_mcqs = extract_json_from_response(non_coding_mcqs_raw)
 
             if not isinstance(non_coding_mcqs, list):
-                print(
-                    f"[ERROR] Non-coding MCQs are not a list. Type: {type(non_coding_mcqs)}"
-                )
-                print(f"[DEBUG] Raw output: {non_coding_mcqs_raw}")
                 non_coding_mcqs = []
             else:
                 non_coding_mcqs = validate_question_structure(non_coding_mcqs)
 
         except Exception as e:
             print("[ERROR] Failed non-coding MCQs:", e)
-            print(f"[DEBUG] Raw output: {non_coding_mcqs_raw}")
 
     all_questions = coding_mcqs + non_coding_mcqs
     print("[DEBUG] Total questions generated:", len(all_questions))

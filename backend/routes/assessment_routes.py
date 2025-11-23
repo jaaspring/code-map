@@ -94,6 +94,8 @@ def create_follow_up_questions(data: SkillReflectionRequest):
             question_id = add_generated_question(
                 user_id=data.user_test_id,
                 question_text=q.get("question", ""),
+                code=q.get("code", None),
+                language=q.get("language", None),
                 options=q.get("options", []),
                 answer=q.get("answer", ""),
                 difficulty=q.get("difficulty", "easy"),
@@ -104,6 +106,8 @@ def create_follow_up_questions(data: SkillReflectionRequest):
                 {
                     "id": question_id,
                     "question": q.get("question", ""),
+                    "code": q.get("code", None),
+                    "language": q.get("language", None),
                     "options": q.get("options", []),
                     "answer": q.get("answer", ""),
                     "difficulty": q.get("difficulty", "easy"),

@@ -131,6 +131,67 @@ class _FollowUpTestState extends State<FollowUpTest> {
   }
 
   Widget _buildQuestionContent(String questionText) {
+    final currentQuestion = widget.questions[_currentIndex];
+    final String? code = currentQuestion['code'];
+    final String? language = currentQuestion['language'];
+
+    // if it's a coding question with separate code field
+    if (code != null && code.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // question text
+          Text(
+            questionText,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 16),
+
+          // language badge
+          if (language != null && language.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                language.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.blue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+
+          // code block
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SelectableText(
+                code,
+                style: const TextStyle(
+                  fontFamily: 'RobotoMono',
+                  fontSize: 13,
+                  color: Colors.white,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    //fallback to old markdown parsing for backward compatibility
     final codeRegex = RegExp(r'```(.*?)```', dotAll: true);
     final matches = codeRegex.allMatches(questionText);
 

@@ -28,6 +28,8 @@ def get_user_test(user_id: str) -> dict:
 def add_generated_question(
     user_id: str,
     question_text: str,
+    code=None,
+    language=None,
     options=None,
     answer=None,
     difficulty=None,
@@ -39,6 +41,8 @@ def add_generated_question(
         {
             "user_test_id": user_id,
             "question_text": question_text,
+            "code": code,
+            "language": language,
             "options": options or [],
             "answer": answer,
             "difficulty": difficulty,
