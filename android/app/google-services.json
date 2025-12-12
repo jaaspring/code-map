@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "929656496766",
+    "project_id": "codemapv1",
+    "storage_bucket": "codemapv1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:929656496766:android:afea420697e3566e7dee2f",
+        "android_client_info": {
+          "package_name": "com.example.codemapv1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeMjkl7iePuOZmkVKhR38l4-yRVjoishY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
