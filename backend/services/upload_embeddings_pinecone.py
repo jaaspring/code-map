@@ -2,7 +2,7 @@ import os
 import glob
 import pickle
 import pandas as pd
-import uuid
+import hashlib
 from tqdm import tqdm
 from dotenv import load_dotenv
 from pinecone import Pinecone
@@ -25,6 +25,7 @@ FOLDER_PATH = "../data"  # Folder containing CSVs
 COLUMN_NAME = "Full Job Description"  # Column to embed
 BATCH_SIZE = 100  # Number of vectors per upload batch
 EMBEDDINGS_FILE = os.path.join(FOLDER_PATH, "job_embeddings.pkl")
+NAMESPACE = "jobs"  # pinecone namespace for jobs
 
 # =====================================
 # Initialize Hugging Face Model
@@ -69,12 +70,8 @@ print(f"\nTotal combined job records: {len(df)}")
 # =====================================
 # Data Cleaning
 # =====================================
-# Replace NaN, None, etc. with empty strings
-df = df.fillna("")
-
-# Ensure all columns are string-typed to avoid NaN/float issues in metadata
-df = df.astype(str)
-
+df = df.fillna("")  # replace NaN/None with empty strings
+df = df.astype(str)  # ensure all columns are strings
 print("✓ Cleaned dataframe: NaN and invalid values replaced.\n")
 
 # =====================================
@@ -99,32 +96,35 @@ for i, job_desc in enumerate(tqdm(job_descriptions, desc="Processing jobs")):
         emb = get_embeddings(job_desc)
         embeddings.append(emb)
 
-        # Safe metadata (all strings)
-        vector_id = str(uuid.uuid4())
-        metadata = {"title": df.iloc[i].get("Title", ""), "description": job_desc}
+        # stable vector ID: hash of title
+        title = df.iloc[i].get("Title", "")
+        vector_id = hashlib.md5(f"{title}".encode()).hexdigest()
 
-        # Force clean metadata (ensure valid JSON)
+        metadata = {
+            "title": title,
+            "description": job_desc,
+            "type": "job",
+            "job_id": vector_id,
+        }
+
+        # force clean metadata
         metadata = {k: ("" if pd.isna(v) else str(v)) for k, v in metadata.items()}
 
         batch.append({"id": vector_id, "values": emb, "metadata": metadata})
 
-        # Upload in batches
+        # upload in batches
         if len(batch) >= BATCH_SIZE:
-            index.upsert(vectors=batch)
+            index.upsert(vectors=batch, namespace=NAMESPACE)
             batch = []
 
     except Exception as e:
         print(f"Skipping record {i} due to error: {e}")
         continue
 
-# Upload remaining
+# upload remaining vectors
 if batch:
-    index.upsert(vectors=batch)
+    index.upsert(vectors=batch, namespace=NAMESPACE)
 
-# Save embeddings locally
+# save embeddings locally as backup
 with open(EMBEDDINGS_FILE, "wb") as f:
     pickle.dump(embeddings, f)
-
-print(
-    f"\nDone! Uploaded {len(df)} embeddings to Pinecone and saved backup at {EMBEDDINGS_FILE}"
-)
