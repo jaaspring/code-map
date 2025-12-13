@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_responses.dart';
 import '../../services/api_service.dart';
 import '../follow_up_test/follow_up_screen.dart';
@@ -37,6 +39,18 @@ class _CareerGoalsState extends State<CareerGoals> {
   }
 
   void _onCompletePressed() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("User not logged in."),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    final uid = user.uid;
+
     if (_isSubmitting) return; // prevent multiple submissions
 
     final text = _controller.text.trim(); // remove leading/trailing spaces
@@ -71,6 +85,12 @@ class _CareerGoalsState extends State<CareerGoals> {
 
       // submit test -> backend creates userTestId
       final userTestId = await ApiService.submitTest(widget.userResponse);
+
+      // save the test ID under the current user's document
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'userTestId': userTestId,
+        'lastUpdated': FieldValue.serverTimestamp()
+      });
 
       // navigate to FollowUpScreen with the userTestId
       Navigator.push(
