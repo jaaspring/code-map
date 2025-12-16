@@ -1,7 +1,7 @@
 import 'package:code_map/screens/login_screen.dart';
+import 'package:code_map/screens/user/assessment_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../educational_background_test/educational_background_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -341,7 +341,7 @@ class _HomePageState extends State<HomePage>
                                 context,
                                 MaterialPageRoute(
                                     builder: (context) =>
-                                        const EducationalBackgroundTestScreen()),
+                                        const AssessmentScreen()),
                               );
                             },
                             style: ElevatedButton.styleFrom(
