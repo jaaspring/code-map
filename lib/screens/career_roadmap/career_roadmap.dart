@@ -1,8 +1,8 @@
+import 'package:code_map/screens/user/assessment_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../utils/retake_service.dart';
-import '../educational_background_test/educational_background_screen.dart';
 import '../user/home_screen.dart';
 
 class CareerRoadmap extends StatefulWidget {
@@ -218,7 +218,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => const EducationalBackgroundTestScreen(),
+        builder: (context) => const AssessmentScreen(),
       ),
       (route) => false, // clear all routes
     );
