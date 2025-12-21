@@ -13,7 +13,6 @@ class AssessmentScreen extends StatelessWidget {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              // Top bar with back button and logo
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -24,28 +23,21 @@ class AssessmentScreen extends StatelessWidget {
                   ),
                   Image.asset(
                     'assets/logo_only.png',
-                    height: 24,
+                    height: 18,
                     fit: BoxFit.contain,
                   ),
                   const SizedBox(width: 48), // Balance
                 ],
               ),
-
               const Spacer(),
-
-              // Center content
               Column(
                 children: [
-                  // Center logo
                   Image.asset(
                     'assets/logo_only.png',
-                    height: 80,
+                    height: 50,
                     fit: BoxFit.contain,
                   ),
-
                   const SizedBox(height: 40),
-
-                  // "Welcome to .CodeMap."
                   const Text(
                     'Welcome to\n.CodeMap.',
                     textAlign: TextAlign.center,
@@ -56,12 +48,9 @@ class AssessmentScreen extends StatelessWidget {
                       height: 1.3,
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Subtitle
                   const Text(
-                    'Start navigating your IT future now.',
+                    'Start navigating your IT future!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
@@ -72,10 +61,7 @@ class AssessmentScreen extends StatelessWidget {
                   ),
                 ],
               ),
-
               const Spacer(),
-
-              // Get Started button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -107,7 +93,6 @@ class AssessmentScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
             ],
           ),
