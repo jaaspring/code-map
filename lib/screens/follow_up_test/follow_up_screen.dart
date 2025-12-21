@@ -37,7 +37,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     });
 
     String loadingMessage =
-        "Preparing your follow-up test for attempt ${widget.attemptNumber}...";
+        "Generating questions for attempt ${widget.attemptNumber}...";
 
     showDialog(
       context: context,
@@ -72,39 +72,11 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     );
 
     try {
-      List<Map<String, dynamic>> questions;
-
-      try {
-        questions = await ApiService.getGeneratedQuestions(
-          userTestId: widget.userTestId,
-          attemptNumber: widget.attemptNumber,
-        );
-
-        if (questions.isNotEmpty) {
-          if (Navigator.canPop(context)) Navigator.pop(context);
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FollowUpTest(
-                userTestId: widget.userTestId,
-                userResponse: widget.userResponse,
-                questions: questions,
-              ),
-            ),
-          );
-          return;
-        }
-      } catch (e) {
-        print("Error retrieving questions: $e");
-      }
-
-      // if no existing questions found, generate new ones
       loadingMessage =
           "Generating new questions for attempt ${widget.attemptNumber}...";
       print("Generating new questions for attempt ${widget.attemptNumber}...");
 
-      questions = await ApiService.generateQuestions(
+      List<Map<String, dynamic>> questions = await ApiService.generateQuestions(
         skillReflection: widget.userResponse.skillReflection,
         thesisFindings: widget.userResponse.thesisFindings,
         careerGoals: widget.userResponse.careerGoals,
