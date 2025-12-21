@@ -8,18 +8,18 @@ class FollowUpScreen extends StatefulWidget {
   final String userTestId;
   final int attemptNumber;
 
-  const FollowUpScreen(
-      {super.key,
-      required this.userResponse,
-      required this.userTestId,
-      required this.attemptNumber});
+  const FollowUpScreen({
+    super.key,
+    required this.userResponse,
+    required this.userTestId,
+    required this.attemptNumber,
+  });
 
   @override
   State<FollowUpScreen> createState() => _FollowUpScreenState();
 }
 
 class _FollowUpScreenState extends State<FollowUpScreen> {
-  bool _isBackendReady = false;
   bool _isLoading = false;
   bool _showWarning = false;
 
@@ -36,7 +36,9 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
       _showWarning = false;
     });
 
-    // show loading dialog
+    String loadingMessage =
+        "Preparing your follow-up test for attempt ${widget.attemptNumber}...";
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -50,18 +52,19 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               const CircularProgressIndicator(),
               const SizedBox(height: 20),
               Text(
-                _isBackendReady
-                    ? "Generating your questions..."
-                    : "Checking for existing questions...",
+                loadingMessage,
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
-              if (!_isBackendReady) const SizedBox(height: 10),
-              if (!_isBackendReady)
-                const Text(
-                  "This will take a few minutes!",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+              const SizedBox(height: 10),
+              Text(
+                "Attempt ${widget.attemptNumber}",
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.w600,
                 ),
+              ),
             ],
           ),
         ),
@@ -69,7 +72,6 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     );
 
     try {
-      // check for existing generated questions first
       List<Map<String, dynamic>> questions;
 
       try {
@@ -79,11 +81,6 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
         );
 
         if (questions.isNotEmpty) {
-          print(
-              "Found ${questions.length} existing questions for user ${widget.userTestId}");
-          // use existing questions - no need to generate new ones
-          setState(() => _isBackendReady = true);
-
           if (Navigator.canPop(context)) Navigator.pop(context);
 
           Navigator.pushReplacement(
@@ -96,15 +93,17 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               ),
             ),
           );
-          return; // exit early since we have existing questions
+          return;
         }
       } catch (e) {
-        print("No existing questions found or error retrieving: $e");
-        // continue to generate new questions
+        print("Error retrieving questions: $e");
       }
 
       // if no existing questions found, generate new ones
-      print("No existing questions found, generating new ones...");
+      loadingMessage =
+          "Generating new questions for attempt ${widget.attemptNumber}...";
+      print("Generating new questions for attempt ${widget.attemptNumber}...");
+
       questions = await ApiService.generateQuestions(
         skillReflection: widget.userResponse.skillReflection,
         thesisFindings: widget.userResponse.thesisFindings,
@@ -113,11 +112,10 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
         attemptNumber: widget.attemptNumber,
       );
 
-      print("New questions generated: ${questions.length}");
+      print(
+          "Generated ${questions.length} new questions for attempt ${widget.attemptNumber}");
 
       if (questions.isNotEmpty) {
-        setState(() => _isBackendReady = true);
-
         if (Navigator.canPop(context)) Navigator.pop(context);
 
         Navigator.pushReplacement(
@@ -131,14 +129,16 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
           ),
         );
       } else {
-        throw Exception("No questions were generated");
+        throw Exception(
+            "No questions were generated for attempt ${widget.attemptNumber}");
       }
     } catch (e) {
       if (Navigator.canPop(context)) Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Error: ${e.toString()}"),
+          content: Text(
+              "Error for attempt ${widget.attemptNumber}: ${e.toString()}"),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -157,20 +157,53 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
         children: [
           const Expanded(
             child: Center(
-              child: Text(
-                'Follow-up Test: Validate Your Skills',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Follow-up Test: Validate Your Skills',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Coding & Technical Assessment',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
               ),
             ),
           ),
+
+          // show attempt info
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.blue[100]!),
+            ),
+            child: Text(
+              'Assessment Attempt ${widget.attemptNumber}',
+              style: TextStyle(
+                color: Colors.blue[700],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
           if (_showWarning)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
               child: Text(
-                "Please check your connection and try again",
+                "Please check your connection and try again\nAttempt ${widget.attemptNumber}",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.orange, fontSize: 14),
+                style: const TextStyle(color: Colors.orange, fontSize: 14),
               ),
             ),
           Padding(
@@ -181,7 +214,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () => _startFollowUp(context),
-                      child: const Text('Start'),
+                      child: const Text('Start Attempt'),
                     ),
                   ),
           ),
