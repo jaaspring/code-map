@@ -91,15 +91,15 @@ class _CareerGoalsState extends State<CareerGoals> {
       // update user document with userTestId and new attempt
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'userTestId': userTestId, // link userTestId to user document
-        'lastAttempt': FieldValue.serverTimestamp(), // server timestamp
         'assessmentAttempts': FieldValue.arrayUnion([
           {
-            'attemptNumber': attemptNumber, // new attempt number
+            'attemptNumber': attemptNumber,
             'testId': userTestId,
             'completedAt': DateTime.now().toIso8601String(),
             'status': 'In progress'
           }
-        ])
+        ]),
+        'testIds': FieldValue.arrayUnion([userTestId])
       });
 
       // navigate to FollowUpScreen with the userTestId and attempt number
