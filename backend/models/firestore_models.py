@@ -1,5 +1,6 @@
 from core.database import db
 from google.cloud import firestore
+from google.cloud.firestore_v1 import FieldFilter
 
 
 # -----------------------
@@ -34,8 +35,13 @@ def add_generated_question(
     answer=None,
     difficulty=None,
     question_type=None,
-    test_attempt=1,  # this should come from the request
+    test_attempt=None,
 ) -> str:
+    print(
+        f"[DEBUG] Saving question with test_attempt={test_attempt} for user={user_id}"
+    )
+    print(f"[DEBUG] Question text: {question_text[:50]}...")
+
     question_ref = db.collection("generated_questions").document()
     question_ref.set(
         {
@@ -58,34 +64,20 @@ def get_generated_questions(user_id: str, attempt_number: int = 1):
     return [
         {**q.to_dict(), "id": q.id}
         for q in db.collection("generated_questions")
-        .where("user_test_id", "==", user_id)
-        .where("test_attempt", "==", attempt_number)  # use attempt_number parameter
+        .where(filter=FieldFilter("user_test_id", "==", user_id))
+        .where(
+            filter=FieldFilter("test_attempt", "==", attempt_number)
+        )  # use attempt_number parameter
         .stream()
     ]
-
-
-def get_next_attempt(user_id: str) -> int:
-    """
-    Get the next test attempt number for a user.
-    """
-    attempts = (
-        db.collection("generated_questions")
-        .where("user_test_id", "==", user_id)
-        .select(["test_attempt"])
-        .stream()
-    )
-    max_attempt = 0
-    for doc in attempts:
-        data = doc.to_dict()
-        if "test_attempt" in data and data["test_attempt"] > max_attempt:
-            max_attempt = data["test_attempt"]
-    return max_attempt + 1  # next attempt number
 
 
 # -----------------------
 # FollowUpAnswers
 # -----------------------
-def add_follow_up_answer(user_id: str, question_id: str, selected_option: str) -> str:
+def add_follow_up_answer(
+    user_id: str, question_id: str, selected_option: str, attempt_number: int
+) -> str:
     """
     Add a follow-up answer document.
     """
@@ -95,18 +87,40 @@ def add_follow_up_answer(user_id: str, question_id: str, selected_option: str) -
             "user_test_id": user_id,
             "question_id": question_id,
             "selected_option": selected_option,
+            "test_attempt": attempt_number,
         }
     )
     return answer_ref.id
 
 
-def get_follow_up_answers_by_user(user_id: str):
+def get_follow_up_answers_by_user(user_id: str, attempt_number: int):
     return [
         doc.to_dict()
         for doc in db.collection("follow_up_answers")
-        .where("user_test_id", "==", user_id)
+        .where(filter=FieldFilter("user_test_id", "==", user_id))
+        .where(filter=FieldFilter("test_attempt", "==", attempt_number))
         .stream()
     ]
+
+
+def get_latest_attempt_number(user_id: str) -> int:
+    """
+    Get the latest attempt number for a user.
+    Returns 1 if no attempts found.
+    """
+
+    query = (
+        db.collection("follow_up_answers")
+        .where("user_test_id", "==", user_id)
+        .order_by("test_attempt", direction=firestore.Query.DESCENDING)
+        .limit(1)
+        .stream()
+    )
+
+    for doc in query:
+        return doc.to_dict().get("test_attempt", 1)
+
+    return 1  # default if no answers exist
 
 
 # -----------------------
@@ -181,9 +195,10 @@ def get_jobs_for_recommendation(rec_id: str):
 
 def get_recommendation_id_by_user_test_id(user_test_id: str) -> str | None:
     """
-    Retrieve the recommendation document ID for a given user_test_id.
-    Returns None if not found.
+    Retrieve the most recent recommendation document ID for a given user_test_id.
     """
+    print(f"[DEBUG] Looking for recommendation with user_test_id: {user_test_id}")
+
     docs = (
         db.collection("career_recommendations")
         .where("user_test_id", "==", user_test_id)
@@ -191,6 +206,7 @@ def get_recommendation_id_by_user_test_id(user_test_id: str) -> str | None:
         .stream()
     )
     for doc in docs:
+        print(f"[DEBUG] Found recommendation: {doc.id}")
         return doc.id
     return None
 
