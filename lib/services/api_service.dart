@@ -1,6 +1,7 @@
 // calls APIs, sends HTTP requests, and receives responses.
 
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/follow_up_responses.dart';
@@ -35,18 +36,27 @@ class ApiService {
 
   // submit the initial test and return the generated userTestId (String)
   static Future<String> submitTest(UserResponses responses) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception("User not authenticated");
+    }
     final url = Uri.parse("$baseUrl/submit-test");
+
+    final requestData = {
+      'responses': responses.toJson(),
+      'user_id': user.uid, // add user ID
+    };
 
     final response = await _requestWithRetry(() => http.post(
           url,
           headers: {"Content-Type": "application/json"},
-          body: jsonEncode(responses.toJson()),
+          body: jsonEncode(requestData), // Send new structure
         ));
 
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
       print("Submit Success: $decoded");
-      return decoded['id'] as String; // Firebase IDs are strings
+      return decoded['id'] as String;
     } else {
       throw Exception("Submit Error: ${response.statusCode} ${response.body}");
     }
@@ -307,6 +317,24 @@ class ApiService {
       return json.decode(response.body);
     } else {
       throw Exception("Failed to load report: ${response.statusCode}");
+    }
+  }
+
+  static Future<Map<String, dynamic>> getRecentUserTest(String userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user/$userId/recent-test'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to get recent test');
+      }
+    } catch (e) {
+      print('Error getting recent test: $e');
+      rethrow;
     }
   }
 

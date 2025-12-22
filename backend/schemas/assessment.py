@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from enum import Enum
+from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 
 
@@ -22,16 +23,53 @@ class SkillReflectionRequest(BaseModel):
 
 
 # -----------------------------
+# Submit test with user ID
+# -----------------------------
+class SubmitTestRequest(BaseModel):
+    responses: UserResponses
+    user_id: str
+
+
+# -----------------------------
 # Follow-up test schemas
 # -----------------------------
 class FollowUpResponse(BaseModel):
-    questionId: str
-    selectedOption: str
-    user_test_id: str
+    questionId: str  # camelCase to match JSON
+    selectedOption: str  # camelCase to match JSON
+    user_test_id: str  # snake_case to match JSON
+    test_attempt: int  # snake_case to match JSON
 
 
 class FollowUpResponses(BaseModel):
     responses: List[FollowUpResponse]
+
+
+# -----------------------------
+# Question generation schemas
+# -----------------------------
+class Category(str, Enum):
+    Coding = "Coding"
+    NonCoding = "Non-coding"
+
+
+class Difficulty(str, Enum):
+    Easy = "Easy"
+    Medium = "Medium"
+    Hard = "Hard"
+
+
+class Question(BaseModel):
+    question: str = Field(description="The question text")
+    options: List[str] = Field(description="List of 4 options A, B, C, D")
+    answer: str = Field(description="Correct answer A, B, C, or D")
+    difficulty: str = Field(description="Easy, Medium, or Hard")
+    category: str = Field(description="Coding or Non-coding")
+
+
+class CodingQuestion(BaseModel):
+    question: str = Field(description="Question with embedded code snippet")
+    difficulty: str = Field(description="Easy, Medium, or Hard")
+    category: str = Field(description="Coding")
 
 
 # -----------------------------

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Body
 from schemas.assessment import (
-    UserResponses,
+    SubmitTestRequest,
     SkillReflectionRequest,
     FollowUpResponses,
     JobMatch,
@@ -29,6 +29,7 @@ from models.firestore_models import (
     add_job_match,
     get_job_matches,
     get_recommendation_id_by_user_test_id,
+    get_user_test,
 )
 from services.career_roadmaps_service import (
     compute_career_roadmaps,
@@ -43,7 +44,9 @@ router = APIRouter()
 # Submit user test responses
 # -----------------------------
 @router.post("/submit-test")
-def submit_test(data: UserResponses):
+def submit_test(request: SubmitTestRequest):
+    data = request.responses
+    user_id = request.user_id
     doc_data = {
         "educationLevel": data.educationLevel,
         "cgpa": data.cgpa,
@@ -55,9 +58,9 @@ def submit_test(data: UserResponses):
         "thesisFindings": data.thesisFindings,
         "careerGoals": data.careerGoals,
     }
-    user_id = create_user_test(doc_data)
+    user_test_id = create_user_test(user_id, doc_data)
     add_user_skills_knowledge(user_id, skills=[], knowledge=[])
-    return {"message": "Data saved successfully", "id": user_id}
+    return {"message": "Data saved successfully", "id": user_test_id}
 
 
 # -----------------------------
@@ -344,6 +347,25 @@ def get_report(user_test_id: str, job_index: str):
         return report_data
 
     return {"message": "Report retrieved successfully", "data": report_data}
+
+
+@router.get("/user/{user_id}/recent-test")
+def get_recent_user_test(user_id: str):
+    """
+    Get the most recent user test for a user.
+    Returns user_test_id and basic test info.
+    """
+    test_data = get_user_test(user_id)
+    if not test_data:
+        return {"error": "No test found for user"}
+
+    return {
+        "message": "Recent test found",
+        "data": {
+            "user_test_id": user_id,
+            "test_data": test_data,
+        },
+    }
 
 
 # -----------------------------

@@ -6,7 +6,7 @@ from google.cloud.firestore_v1 import FieldFilter
 # -----------------------
 # UserTest
 # -----------------------
-def create_user_test(data: dict) -> str:
+def create_user_test(user_id: str, data: dict) -> str:
     """
     Create a new user test document.
     data keys: educationLevel, cgpa, thesisTopic, major, programmingLanguages,
@@ -14,6 +14,8 @@ def create_user_test(data: dict) -> str:
     Returns the new document ID.
     """
     user_ref = db.collection("user_tests").document()  # auto-ID
+    data["user_id"] = user_id  # userId to track
+    data["created_at"] = firestore.SERVER_TIMESTAMP
     user_ref.set(data)
     return user_ref.id
 
@@ -21,6 +23,24 @@ def create_user_test(data: dict) -> str:
 def get_user_test(user_id: str) -> dict:
     doc = db.collection("user_tests").document(user_id).get()
     return doc.to_dict() if doc.exists else None
+
+
+def get_user_tests_by_user(user_id: str) -> list:
+    """
+    Get all tests for a user, sorted by most recent.
+    """
+    tests_ref = db.collection("user_tests").where("userId", "==", user_id)
+    docs = tests_ref.order_by(
+        "created_at", direction=firestore.Query.DESCENDING
+    ).stream()
+
+    tests = []
+    for doc in docs:
+        test_data = doc.to_dict()
+        test_data["id"] = doc.id
+        tests.append(test_data)
+
+    return tests
 
 
 # -----------------------
