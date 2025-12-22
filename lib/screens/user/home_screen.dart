@@ -2,6 +2,7 @@ import 'package:code_map/screens/login_screen.dart';
 import 'package:code_map/screens/user/assessment_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'recent_report_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -268,6 +269,10 @@ class _HomePageState extends State<HomePage>
                   ),
 
                   const SizedBox(height: 32),
+
+                  const RecentReportWidget(),
+
+                  const SizedBox(height: 24),
 
                   // GET STARTED SECTION
                   const Text(
