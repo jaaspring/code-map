@@ -2,21 +2,23 @@ import 'package:code_map/screens/results/report.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 
-class SkillGapAnalysisScreen extends StatefulWidget {
+class GapAnalysisScreen extends StatefulWidget {
   final String userTestId;
   final String jobIndex;
+  final int attemptNumber;
 
-  const SkillGapAnalysisScreen({
+  const GapAnalysisScreen({
     super.key,
     required this.userTestId,
     required this.jobIndex,
+    required this.attemptNumber,
   });
 
   @override
-  State<SkillGapAnalysisScreen> createState() => _SkillGapAnalysisScreenState();
+  State<GapAnalysisScreen> createState() => _GapAnalysisScreenState();
 }
 
-class _SkillGapAnalysisScreenState extends State<SkillGapAnalysisScreen> {
+class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
   Map<String, dynamic>? _gapData;
   bool _isLoading = true;
   String? _errorMessage;
@@ -31,8 +33,8 @@ class _SkillGapAnalysisScreenState extends State<SkillGapAnalysisScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final allGaps =
-          await ApiService.getGapAnalysis(userTestId: widget.userTestId);
+      final allGaps = await ApiService.getGapAnalysis(
+          userTestId: widget.userTestId, attemptNumber: widget.attemptNumber);
 
       print("DEBUG: total gaps fetched = ${allGaps.length}");
       print("DEBUG: looking for job_index = ${widget.jobIndex}");

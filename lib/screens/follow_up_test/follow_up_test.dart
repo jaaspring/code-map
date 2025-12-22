@@ -8,12 +8,14 @@ class FollowUpTest extends StatefulWidget {
   final String userTestId; // passed from FollowUpScreen
   final UserResponses userResponse;
   final List<dynamic> questions;
+  final int attemptNumber;
 
   const FollowUpTest({
     super.key,
     required this.userTestId,
     required this.userResponse,
     required this.questions,
+    required this.attemptNumber,
   });
 
   @override
@@ -45,6 +47,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
         questionId: questionId,
         selectedOption: _selectedOption, // can be null safely
         userTestId: widget.userTestId,
+        attemptNumber: widget.attemptNumber,
       ));
     }
   }
@@ -95,6 +98,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
         MaterialPageRoute(
           builder: (_) => CareerRecommendationsScreen(
             userTestId: widget.userTestId,
+            attemptNumber: widget.attemptNumber,
           ),
         ),
         (route) => false,

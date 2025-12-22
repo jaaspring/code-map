@@ -2,14 +2,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../models/user_profile_match.dart';
 import '../../services/api_service.dart';
-import 'package:code_map/screens/results/skill_gap_analysis.dart';
+import 'package:code_map/screens/results/gap_analysis.dart';
 
 import '../../utils/retake_service.dart';
 
 class CareerRecommendationsScreen extends StatefulWidget {
   final String userTestId;
+  final int attemptNumber;
 
-  const CareerRecommendationsScreen({super.key, required this.userTestId});
+  const CareerRecommendationsScreen(
+      {super.key, required this.userTestId, required this.attemptNumber});
 
   @override
   State<CareerRecommendationsScreen> createState() =>
@@ -39,6 +41,7 @@ class _CareerRecommendationsScreenState
       print('STARTED: Fetching profile match...');
       final result =
           await ApiService.getUserProfileMatch(userTestId: widget.userTestId);
+      print('getUserProfileMatch completed');
 
       if (result == null) {
         print('FAILED: API returned NULL result');
@@ -48,6 +51,8 @@ class _CareerRecommendationsScreenState
         });
         return;
       }
+
+      print('Result received, topMatches: ${result.topMatches.length}');
 
       print(
           'SUCCESS: API call completed! Total jobs: ${result.topMatches.length}');
@@ -81,8 +86,8 @@ class _CareerRecommendationsScreenState
     if (_profileMatch == null) return;
 
     try {
-      final allGaps =
-          await ApiService.getGapAnalysis(userTestId: widget.userTestId);
+      final allGaps = await ApiService.getGapAnalysis(
+          userTestId: widget.userTestId, attemptNumber: widget.attemptNumber);
 
       setState(() {
         for (var job in _profileMatch!.topMatches) {
@@ -121,7 +126,8 @@ class _CareerRecommendationsScreenState
       print('STARTED: Triggering chart computation...');
 
       // this API call tells the backend to compute/generate charts for all jobs
-      await ApiService.getCharts(userTestId: widget.userTestId);
+      await ApiService.getCharts(
+          userTestId: widget.userTestId, attemptNumber: widget.attemptNumber);
 
       print('SUCCESS: Chart computation triggered on backend!');
     } catch (e) {
@@ -442,10 +448,10 @@ class _CareerRecommendationsScreenState
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          SkillGapAnalysisScreen(
+                                      builder: (context) => GapAnalysisScreen(
                                         userTestId: widget.userTestId,
                                         jobIndex: selectedJob.dbJobIndex!,
+                                        attemptNumber: widget.attemptNumber,
                                       ),
                                     ),
                                   );

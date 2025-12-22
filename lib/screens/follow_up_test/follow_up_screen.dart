@@ -97,6 +97,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               userTestId: widget.userTestId,
               userResponse: widget.userResponse,
               questions: questions,
+              attemptNumber: widget.attemptNumber,
             ),
           ),
         );
