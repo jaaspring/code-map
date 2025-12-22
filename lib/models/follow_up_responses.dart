@@ -2,11 +2,13 @@ class FollowUpResponse {
   final String questionId;
   String? selectedOption;
   final String userTestId;
+  final int attemptNumber;
 
   FollowUpResponse({
     required this.questionId,
     required this.selectedOption,
     required this.userTestId,
+    required this.attemptNumber,
   });
 
   Map<String, dynamic> toJson() {
@@ -14,6 +16,7 @@ class FollowUpResponse {
       "questionId": questionId,
       "selectedOption": selectedOption,
       "user_test_id": userTestId, // backend expects snake_case
+      "test_attempt": attemptNumber,
     };
   }
 }
