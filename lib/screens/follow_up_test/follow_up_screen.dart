@@ -77,9 +77,6 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
       print("Generating new questions for attempt ${widget.attemptNumber}...");
 
       List<Map<String, dynamic>> questions = await ApiService.generateQuestions(
-        skillReflection: widget.userResponse.skillReflection,
-        thesisFindings: widget.userResponse.thesisFindings,
-        careerGoals: widget.userResponse.careerGoals,
         userTestId: widget.userTestId,
         attemptNumber: widget.attemptNumber,
       );

@@ -44,7 +44,6 @@ class ApiService {
 
     final requestData = {
       'responses': responses.toJson(),
-      'user_id': user.uid, // add user ID
     };
 
     final response = await _requestWithRetry(() => http.post(
@@ -64,9 +63,6 @@ class ApiService {
 
   // generate questions
   static Future<List<Map<String, dynamic>>> generateQuestions({
-    required String skillReflection,
-    required String thesisFindings,
-    required String careerGoals,
     required String userTestId,
     required int attemptNumber,
   }) async {
@@ -201,7 +197,6 @@ class ApiService {
   // get skill and knowledge gap analysis for all jobs
   static Future<List<Map<String, dynamic>>> getGapAnalysis({
     required String userTestId,
-    required int attemptNumber,
   }) async {
     final url = Uri.parse("$baseUrl/gap-analysis/all/$userTestId");
 
@@ -242,6 +237,38 @@ class ApiService {
     } else {
       throw Exception(
           "Error fetching gap analysis: ${response.statusCode} ${response.body}");
+    }
+  }
+
+  static Future<Map<String, dynamic>> getSingleGapAnalysis({
+    required String userTestId,
+    required String jobIndex,
+    required int attemptNumber,
+  }) async {
+    try {
+      print("DEBUG ApiService: Calling gap analysis endpoint");
+      print(
+          "DEBUG ApiService: URL: $baseUrl/gap-analysis/$userTestId/$jobIndex?attempt=$attemptNumber");
+
+      final response = await http.get(
+        Uri.parse(
+            '$baseUrl/gap-analysis/$userTestId/$jobIndex?attempt=$attemptNumber'),
+      );
+
+      print("DEBUG ApiService: Response status: ${response.statusCode}");
+      print("DEBUG ApiService: Response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print("DEBUG ApiService: Error response: ${response.body}");
+        throw Exception(
+            'Failed to fetch gap analysis for job: ${response.statusCode}');
+      }
+    } catch (e, s) {
+      print("DEBUG ApiService: Exception: $e");
+      print("DEBUG ApiService: Stack: $s");
+      rethrow;
     }
   }
 
