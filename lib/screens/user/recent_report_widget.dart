@@ -19,6 +19,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
   Map<String, dynamic>? _selectedJob;
   Map<String, dynamic>? _reportData;
   String? _userTestId;
+  int? _attemptNumber;
   bool _isLoading = true;
   String? _errorMessage;
   bool _showJobDropdown = false;
@@ -40,11 +41,31 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
         return;
       }
 
-      // get userTestId from users collection (as saved in CareerGoals)
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
 
       if (userDoc.exists) {
-        _userTestId = userDoc.data()?['userTestId'];
+        final data = userDoc.data() as Map<String, dynamic>;
+
+        final attempts = data['assessmentAttempts'] as List?;
+
+        if (attempts != null && attempts.isNotEmpty) {
+          attempts.sort((a, b) {
+            final aDate = DateTime.parse(a['completedAt']);
+            final bDate = DateTime.parse(b['completedAt']);
+            return bDate.compareTo(aDate);
+          });
+
+          final latestAttempt = attempts.first;
+
+          _userTestId = latestAttempt['testId'];
+          _attemptNumber = latestAttempt['attemptNumber'];
+
+          print(
+              "Using LATEST testId: $_userTestId from attempt: $_attemptNumber");
+        } else {
+          _userTestId = null;
+        }
+
         if (_userTestId != null && _userTestId!.isNotEmpty) {
           await _loadAllJobs();
         } else {
@@ -72,11 +93,20 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     if (_userTestId == null) return;
 
     try {
+      print("=== LOADING JOBS DEBUG ===");
+      print("UserTestId: $_userTestId");
+      print("Attempt: $_attemptNumber");
+
       // load all 3 job recommendations
       for (int jobIndex = 0; jobIndex < 3; jobIndex++) {
         try {
           final response = await ApiService.generateReport(
               _userTestId!, jobIndex.toString());
+
+          print("\nJob $jobIndex Response:");
+          print("Job Title: ${response['data']?['job']?['job_title']}");
+          print(
+              "Job Desc: ${response['data']?['job']?['job_description']?.substring(0, 50)}...");
 
           if (response['data'] != null && response['data']['job'] != null) {
             _availableJobs.add({
@@ -94,10 +124,17 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
         }
       }
 
+      print("\n=== LOADED ${_availableJobs.length} JOBS ===");
+      for (var i = 0; i < _availableJobs.length; i++) {
+        print("Job $i: ${_availableJobs[i]['job_title']}");
+      }
+
       if (_availableJobs.isNotEmpty) {
         // select first job by default
         _selectedJob = _availableJobs.first;
         _reportData = _selectedJob!['report_data'];
+
+        print("\nSELECTED JOB: ${_selectedJob!['job_title']}");
 
         setState(() {
           _isLoading = false;
@@ -316,13 +353,13 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
           const SizedBox(height: 16),
 
           if (_isLoading)
-            _buildLoadingState()
+            Center(child: _buildLoadingState())
           else if (_errorMessage != null)
-            _buildErrorState()
+            Center(child: _buildErrorState())
           else if (_reportData != null)
             _buildReportContent()
           else
-            _buildNoReportState(),
+            Center(child: _buildNoReportState()),
         ],
       ),
     );
@@ -348,6 +385,8 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
 
   Widget _buildErrorState() {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(
           Icons.work_outline,
@@ -363,23 +402,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             fontSize: 12,
           ),
         ),
-        const SizedBox(height: 12),
-        ElevatedButton(
-          onPressed: _loadRecentReport,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2F8D46),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          child: const Text(
-            'Try Again',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -387,6 +409,8 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
   Widget _buildNoReportState() {
     return Center(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(
             Icons.work_outline,
@@ -404,6 +428,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
           const SizedBox(height: 4),
           const Text(
             'Complete an assessment to see your matches',
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.grey,
               fontSize: 12,
@@ -452,6 +477,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                   builder: (context) => ReportScreen(
                     userTestId: _userTestId!,
                     jobIndex: _selectedJob!['job_index'],
+                    atemptNumber: _attemptNumber, // pass attempt number
                   ),
                 ),
               );
@@ -540,6 +566,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                         builder: (context) => ReportScreen(
                           userTestId: _userTestId!,
                           jobIndex: _selectedJob!['job_index'],
+                          atemptNumber: _attemptNumber,
                         ),
                       ),
                     );
