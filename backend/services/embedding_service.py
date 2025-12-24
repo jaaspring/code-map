@@ -206,7 +206,9 @@ def analyze_user_skills_knowledge(user_test_id: str) -> Dict[str, Any]:
 
         try:
             add_user_skills_knowledge(
-                user_id=str(user_test_id), skills=skills_dict, knowledge=knowledge_dict
+                user_test_id=str(user_test_id),
+                skills=skills_dict,
+                knowledge=knowledge_dict,
             )
             print(
                 f"Saved skills/knowledge for user_test_id {user_test_id} to Firestore"
