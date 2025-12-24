@@ -7,11 +7,15 @@ import '../career_roadmap/career_roadmap.dart';
 class ReportScreen extends StatefulWidget {
   final String userTestId;
   final String jobIndex;
+  final Map<String, dynamic>? gapAnalysisData;
+  final int? atemptNumber; // needed for fetching gap analysis separately
 
   const ReportScreen({
     super.key,
     required this.userTestId,
     required this.jobIndex,
+    this.gapAnalysisData,
+    this.atemptNumber,
   });
 
   @override
@@ -20,12 +24,61 @@ class ReportScreen extends StatefulWidget {
 
 class _ReportScreenState extends State<ReportScreen> {
   Map<String, dynamic>? report;
+  Map<String, dynamic>? gapAnalysisData; // store gap analysis data
   bool isLoading = true;
+  bool isLoadingGapAnalysis = false;
 
   @override
   void initState() {
     super.initState();
+
+    // store gap analysis data from previous screen
+    gapAnalysisData = widget.gapAnalysisData;
+
+    // if no gap analysis data passed, fetch it
+    if (gapAnalysisData == null) {
+      _fetchGapAnalysis();
+    }
+
     fetchReport();
+  }
+
+  Future<void> _fetchGapAnalysis() async {
+    try {
+      setState(() => isLoadingGapAnalysis = true);
+
+      final attemptNumber = widget.atemptNumber ?? 1;
+
+      print("DEBUG: Fetching gap analysis with:");
+      print("DEBUG: - userTestId: ${widget.userTestId}");
+      print("DEBUG: - jobIndex: ${widget.jobIndex}");
+      print("DEBUG: - attemptNumber: $attemptNumber");
+
+      final response = await ApiService.getSingleGapAnalysis(
+        userTestId: widget.userTestId,
+        jobIndex: widget.jobIndex,
+        attemptNumber: attemptNumber,
+      );
+
+      print("DEBUG: API Response: $response");
+
+      if (response['data'] != null &&
+          response['data']['gap_analysis'] != null) {
+        setState(() {
+          gapAnalysisData =
+              Map<String, dynamic>.from(response['data']['gap_analysis']);
+        });
+        print("DEBUG: Successfully set gapAnalysisData");
+      } else {
+        print("DEBUG: No gap_analysis in response data");
+        print("DEBUG: Response data structure: ${response['data']}");
+      }
+    } catch (e, s) {
+      print("Failed to fetch gap analysis: $e");
+      print("Stack trace: $s");
+    } finally {
+      setState(() => isLoadingGapAnalysis = false);
+    }
   }
 
   void fetchReport() async {
@@ -44,9 +97,129 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
+  // method to display gap analysis table (similar to Gap Analysis Screen)
+  Widget _buildGapAnalysisTable(Map<String, dynamic> data, String title) {
+    if (data.isEmpty) {
+      print("DEBUG Table: $title data is empty!");
+      return const SizedBox.shrink();
+    }
+
+    print("DEBUG Table: Building $title with ${data.length} entries");
+    print("DEBUG Table: Data = $data");
+
+    final entries = data.entries.toList();
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Table(
+              columnWidths: const {
+                0: FlexColumnWidth(2),
+                1: FlexColumnWidth(1),
+                2: FlexColumnWidth(1),
+                3: FlexColumnWidth(1),
+              },
+              border: TableBorder.all(color: Colors.grey.shade300),
+              children: [
+                const TableRow(
+                  decoration: BoxDecoration(color: Colors.grey),
+                  children: [
+                    Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Text('Name',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white))),
+                    Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Text('Required',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white))),
+                    Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Text('User Level',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white))),
+                    Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Text('Status',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white))),
+                  ],
+                ),
+                ...entries.map((e) {
+                  final value = e.value;
+                  print("DEBUG Table Entry: ${e.key} = $value");
+
+                  // Handle different possible data structures
+                  final requiredLevel = value is Map
+                      ? (value['required_level'] ?? value['required'] ?? '-')
+                      : (value.toString());
+
+                  final userLevel =
+                      value is Map ? (value['user_level'] ?? '-') : '-';
+
+                  final status = value is Map ? (value['status'] ?? '-') : '-';
+
+                  return TableRow(
+                    children: [
+                      Padding(
+                          padding: const EdgeInsets.all(8), child: Text(e.key)),
+                      Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(requiredLevel.toString())),
+                      Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(userLevel.toString())),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Text(
+                          status.toString(),
+                          style: TextStyle(
+                            color: status == 'Achieved'
+                                ? Colors.green
+                                : status == 'Weak'
+                                    ? Colors.amber
+                                    : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final reportData = report;
+
+    // DEBUG: Check gap analysis data
+    print("DEBUG Build: gapAnalysisData = $gapAnalysisData");
+    if (gapAnalysisData != null) {
+      print(
+          "DEBUG Build: gapAnalysisData keys = ${gapAnalysisData!.keys.toList()}");
+      print("DEBUG Build: skills = ${gapAnalysisData!['skills']}");
+      print("DEBUG Build: knowledge = ${gapAnalysisData!['knowledge']}");
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -219,94 +392,7 @@ class _ReportScreenState extends State<ReportScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-                                if (reportData['job']['required_skills'] !=
-                                    null) ...[
-                                  Row(
-                                    children: [
-                                      Icon(Icons.star,
-                                          color: Colors.orange.shade600,
-                                          size: 18),
-                                      const SizedBox(width: 6),
-                                      const Text(
-                                        "Required Skills",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: (reportData['job']
-                                                ['required_skills']
-                                            as Map<String, dynamic>)
-                                        .keys
-                                        .map<Widget>(
-                                          (skill) => Chip(
-                                            label: Text(
-                                              skill,
-                                              style:
-                                                  const TextStyle(fontSize: 13),
-                                            ),
-                                            backgroundColor:
-                                                Colors.blue.shade50,
-                                            side: BorderSide(
-                                              color: Colors.blue.shade200,
-                                              width: 1,
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                ],
-                                const SizedBox(height: 20),
-                                if (reportData['job']['required_knowledge'] !=
-                                    null) ...[
-                                  Row(
-                                    children: [
-                                      Icon(Icons.school,
-                                          color: Colors.purple.shade600,
-                                          size: 18),
-                                      const SizedBox(width: 6),
-                                      const Text(
-                                        "Required Knowledge",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: (reportData['job']
-                                                ['required_knowledge']
-                                            as Map<String, dynamic>)
-                                        .keys
-                                        .map<Widget>(
-                                          (knowledge) => Chip(
-                                            label: Text(
-                                              knowledge,
-                                              style:
-                                                  const TextStyle(fontSize: 13),
-                                            ),
-                                            backgroundColor:
-                                                Colors.purple.shade50,
-                                            side: BorderSide(
-                                              color: Colors.purple.shade200,
-                                              width: 1,
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                ],
-                              ] else
+                              ] else ...[
                                 Center(
                                   child: Padding(
                                     padding: const EdgeInsets.all(16.0),
@@ -319,11 +405,95 @@ class _ReportScreenState extends State<ReportScreen> {
                                     ),
                                   ),
                                 ),
+                              ],
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
+
+                      if (gapAnalysisData != null) ...[
+                        Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(Icons.analytics,
+                                          color: Colors.red.shade700, size: 24),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      "Detailed Gap Analysis",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                _buildGapAnalysisTable(
+                                  Map<String, dynamic>.from(
+                                      gapAnalysisData?['skills'] ?? {}),
+                                  "Skills Comparison",
+                                ),
+                                _buildGapAnalysisTable(
+                                  Map<String, dynamic>.from(
+                                      gapAnalysisData?['knowledge'] ?? {}),
+                                  "Knowledge Comparison",
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ] else if (isLoadingGapAnalysis) ...[
+                        // Show loading while fetching gap analysis
+                        Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    "Loading Gap Analysis...",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
 
                       // Charts Card
                       if (reportData['charts'] != null) ...[

@@ -122,7 +122,6 @@ class RetakeService {
 
           await userRef.update({
             'assessmentAttempts': attempts,
-            'lastAttempt': FieldValue.serverTimestamp(),
           });
 
           print(

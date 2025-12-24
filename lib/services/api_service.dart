@@ -193,19 +193,48 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> getGapAnalysis({
     required String userTestId,
   }) async {
-    final url = Uri.parse("$baseUrl/gap-analysis/all/$userTestId");
+    // add cache-busting parameter to prevent stale data
+    final url = Uri.parse("$baseUrl/gap-analysis/$userTestId")
+        .replace(queryParameters: {
+      '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+      'attempt_refresh': 'true' // explicit flag for backend
+    });
 
     final response = await _requestWithRetry(() => http.post(
           url,
-          headers: {"Content-Type": "application/json"},
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+          },
         ));
 
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
 
-      // DEBUG: print what we actually received
-      print('Gap analysis raw response: $decoded');
-      print('Gap analysis response type: ${decoded.runtimeType}');
+      print('=== GAP ANALYSIS DEBUG ===');
+      print('Requested userTestId: $userTestId');
+      print('Response status: ${response.statusCode}');
+      print('Response body type: ${decoded.runtimeType}');
+      print(
+          'Response keys: ${decoded is Map ? decoded.keys.toList() : "Not a Map"}');
+
+      // check if backend returned an error message
+      if (decoded is Map && decoded.containsKey('error')) {
+        final errorMsg = decoded['error'];
+        print('BACKEND ERROR: $errorMsg');
+        throw Exception("Backend gap analysis error: $errorMsg");
+      }
+
+      // Check if data is empty or has wrong structure
+      if (decoded is Map &&
+          decoded.containsKey('data') &&
+          decoded['data'] == null) {
+        print('WARNING: Backend returned null data field');
+        return [];
+      }
+
+      print('=== END DEBUG ===');
 
       // handle both possible response formats
       List<dynamic> dataList;
@@ -214,21 +243,39 @@ class ApiService {
         final data = decoded['data'];
         if (data is List) {
           dataList = data;
+        } else if (data == null) {
+          print('WARNING: data field is null, returning empty list');
+          return [];
         } else {
-          throw Exception("Expected 'data' to be a List");
+          throw Exception(
+              "Expected 'data' to be a List or null, got ${data.runtimeType}");
         }
       } else if (decoded is List) {
         dataList = decoded;
       } else if (decoded is Map) {
+        // If it's a Map but not an error, treat as single item
         dataList = [decoded];
       } else {
         throw Exception("Unexpected response format: ${decoded.runtimeType}");
       }
 
-      // convert to List<Map<String, dynamic>>
-      return dataList.map<Map<String, dynamic>>((item) {
-        return Map<String, dynamic>.from(item);
+      // validate data quality
+      if (dataList.isEmpty) {
+        print('WARNING: Gap analysis returned empty list');
+        return [];
+      }
+
+      // convert and validate each item has job_index
+      final result = dataList.map<Map<String, dynamic>>((item) {
+        final map = Map<String, dynamic>.from(item);
+        if (map['job_index'] == null) {
+          print('WARNING: Gap item missing job_index: $map');
+        }
+        return map;
       }).toList();
+
+      print('Successfully parsed ${result.length} gap entries');
+      return result;
     } else {
       throw Exception(
           "Error fetching gap analysis: ${response.statusCode} ${response.body}");
@@ -272,7 +319,7 @@ class ApiService {
     required String userTestId,
     required int attemptNumber,
   }) async {
-    final url = Uri.parse("$baseUrl/generate-charts/all/$userTestId");
+    final url = Uri.parse("$baseUrl/generate-charts/$userTestId");
 
     final response = await _requestWithRetry(() => http.post(
           url,

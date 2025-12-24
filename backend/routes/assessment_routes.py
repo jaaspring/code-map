@@ -285,7 +285,7 @@ def user_profile_match(request: SkillReflectionRequest):
 # -----------------------------
 # Skill & Knowledge Gap Analysis for All Jobs
 # -----------------------------
-@router.post("/gap-analysis/all/{user_test_id}")
+@router.post("/gap-analysis/{user_test_id}")
 # FastAPI automatically extracts user_test_id from the URL and passes it as the function argument.
 def run_gap_analysis_all(user_test_id: str):
     print(f"[GAP DEBUG] Starting gap analysis for test: {user_test_id}")
@@ -333,7 +333,7 @@ def get_gap_analysis_for_single_job(
 # -----------------------------
 # Charts for All Jobs
 # -----------------------------
-@router.post("/generate-charts/all/{user_test_id}")
+@router.post("/generate-charts/{user_test_id}")
 def run_charts_all(user_test_id: str, data: dict = Body(...)):
     """
     Generate charts for all recommended jobs.

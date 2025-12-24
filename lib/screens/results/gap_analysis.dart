@@ -33,8 +33,8 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final allGaps = await ApiService.getGapAnalysis(
-          userTestId: widget.userTestId, attemptNumber: widget.attemptNumber);
+      final allGaps =
+          await ApiService.getGapAnalysis(userTestId: widget.userTestId);
 
       print("DEBUG: total gaps fetched = ${allGaps.length}");
       print("DEBUG: looking for job_index = ${widget.jobIndex}");
@@ -239,6 +239,9 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
                                   builder: (context) => ReportScreen(
                                     userTestId: widget.userTestId,
                                     jobIndex: widget.jobIndex,
+                                    atemptNumber: widget.attemptNumber,
+                                    gapAnalysisData:
+                                        _gapData, // pass the already-fetched data
                                   ),
                                 ),
                               );

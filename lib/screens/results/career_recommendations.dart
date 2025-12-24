@@ -7,8 +7,8 @@ import 'package:code_map/screens/results/gap_analysis.dart';
 import '../../utils/retake_service.dart';
 
 class CareerRecommendationsScreen extends StatefulWidget {
-  final String userTestId;
-  final int attemptNumber;
+  final String userTestId; // passed from FollowUpTest
+  final int attemptNumber; // passed from FollowUpTest
 
   const CareerRecommendationsScreen(
       {super.key, required this.userTestId, required this.attemptNumber});
@@ -29,6 +29,10 @@ class _CareerRecommendationsScreenState
   @override
   void initState() {
     super.initState();
+    // clear any expanded states from previous sessions
+    _expandedCards.clear();
+    _selectedJobIndex = null;
+    // now fetch fresh data
     _fetchProfileMatch();
   }
 
@@ -86,17 +90,32 @@ class _CareerRecommendationsScreenState
     if (_profileMatch == null) return;
 
     try {
-      final allGaps = await ApiService.getGapAnalysis(
-          userTestId: widget.userTestId, attemptNumber: widget.attemptNumber);
+      // print the current userTestId being used for the request
+      print(
+          'DEBUG: Fetching gap analysis for userTestId: ${widget.userTestId}');
+      print('DEBUG: Current attempt number: ${widget.attemptNumber}');
+
+      final allGaps =
+          await ApiService.getGapAnalysis(userTestId: widget.userTestId);
+      print('DEBUG: Received ${allGaps.length} total gap analysis entries');
 
       setState(() {
         for (var job in _profileMatch!.topMatches) {
-          print('Mapping skill gaps for job "${job.jobTitle}"');
+          // log the jobIndex you are looking for
+          print(
+              'DEBUG: Looking for gap data for Job: "${job.jobTitle}" | Frontend jobIndex: "${job.jobIndex}"');
+
+          // log ALL job_index values from the gap analysis response
+          for (var gapEntry in allGaps) {
+            var gapJobIndex = gapEntry["job_index"]?.toString();
+            print('  -> Available in response: job_index: "$gapJobIndex"');
+          }
 
           final gap = allGaps.firstWhere(
             (g) => g["job_index"]?.toString() == job.jobIndex,
             orElse: () => {},
           );
+
           if (gap.isNotEmpty) {
             job.dbJobIndex = gap["job_index"]?.toString();
             job.requiredSkills = gap["gap_analysis"]?["skills"] is Map
@@ -106,16 +125,16 @@ class _CareerRecommendationsScreenState
                 ? Map<String, dynamic>.from(gap["gap_analysis"]!["knowledge"])
                 : {};
 
+            print('DEBUG: SUCCESS - Mapped job "${job.jobTitle}"');
+            print('         Matched on job_index: ${job.dbJobIndex}');
             print(
-                'Mapped job "${job.jobTitle}" -> dbJobIndex: ${job.dbJobIndex}');
+                '         Skills found: ${job.requiredSkills?.keys.toList()}');
           } else {
             print(
-                'No gap found for job "${job.jobTitle}" (job_index=${job.jobIndex})');
+                'DEBUG: FAILURE - No gap data found for job_index: ${job.jobIndex}. Skills/Knowledge will be empty.');
           }
         }
       });
-
-      print('Skill gaps computed for all jobs!');
     } catch (e) {
       print('Error computing skill gaps: $e');
     }
