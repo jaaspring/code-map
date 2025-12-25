@@ -236,7 +236,7 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => AssessmentReportScreen(
+                                  builder: (context) => ReportResultScreen(
                                     userTestId: widget.userTestId,
                                     jobIndex: widget.jobIndex,
                                     atemptNumber: widget.attemptNumber,
