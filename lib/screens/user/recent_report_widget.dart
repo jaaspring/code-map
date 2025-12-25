@@ -46,25 +46,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
       if (userDoc.exists) {
         final data = userDoc.data() as Map<String, dynamic>;
 
-        final attempts = data['assessmentAttempts'] as List?;
-
-        if (attempts != null && attempts.isNotEmpty) {
-          attempts.sort((a, b) {
-            final aDate = DateTime.parse(a['completedAt']);
-            final bDate = DateTime.parse(b['completedAt']);
-            return bDate.compareTo(aDate);
-          });
-
-          final latestAttempt = attempts.first;
-
-          _userTestId = latestAttempt['testId'];
-          _attemptNumber = latestAttempt['attemptNumber'];
-
-          print(
-              "Using LATEST testId: $_userTestId from attempt: $_attemptNumber");
-        } else {
-          _userTestId = null;
-        }
+        _userTestId = data['userTestId'];
 
         if (_userTestId != null && _userTestId!.isNotEmpty) {
           await _loadAllJobs();
@@ -579,7 +561,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ReportScreen(
+                  builder: (context) => ReportResultScreen(
                     userTestId: _userTestId!,
                     jobIndex: _selectedJob!['job_index'],
                     atemptNumber: _attemptNumber, // pass attempt number
@@ -766,7 +748,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ReportScreen(
+                        builder: (context) => ReportResultScreen(
                           userTestId: _userTestId!,
                           jobIndex: _selectedJob!['job_index'],
                           atemptNumber: _attemptNumber,
