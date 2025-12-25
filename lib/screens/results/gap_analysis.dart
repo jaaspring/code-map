@@ -168,7 +168,7 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Skill Gap Analysis")),
+      appBar: AppBar(title: const Text("Gap Analysis")),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
@@ -236,7 +236,7 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ReportScreen(
+                                  builder: (context) => AssessmentReportScreen(
                                     userTestId: widget.userTestId,
                                     jobIndex: widget.jobIndex,
                                     atemptNumber: widget.attemptNumber,
