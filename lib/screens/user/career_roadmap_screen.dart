@@ -45,6 +45,40 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       final loadedAttempts = <Map<String, dynamic>>[];
 
+      if (!userDoc.exists) {
+        if (mounted) {
+          setState(() {
+            assessmentAttempts = [];
+            isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final data = userDoc.data();
+      if (data == null) {
+        if (mounted) {
+          setState(() {
+            assessmentAttempts = [];
+            isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final attempts = data['assessmentAttempts'] as List<dynamic>?;
+
+      // handle null or empty attempts
+      if (attempts == null || attempts.isEmpty) {
+        if (mounted) {
+          setState(() {
+            assessmentAttempts = [];
+            isLoading = false;
+          });
+        }
+        return;
+      }
+
       if (userDoc.exists && userDoc.data() != null) {
         final data = userDoc.data()!;
         final attempts = data['assessmentAttempts'] as List<dynamic>?;
@@ -849,7 +883,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 40.0),
                                   child: Text(
-                                    'Complete an assessment to generate personalized career roadmaps based on your job matches!',
+                                    'Complete an assessment to generate personalized career roadmaps based on your job matches! :D',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
