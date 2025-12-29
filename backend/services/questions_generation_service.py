@@ -7,6 +7,11 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.schema import SystemMessage, HumanMessage
+from gpt_oss.gpt_oss_wrapper import GPTOSSWrapper
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 
 # -----------------------------
 # Load environment variables
@@ -20,6 +25,7 @@ if not OPENAI_API_KEY:
 # Initialize LLM
 # -----------------------------
 llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+oss_llm = GPTOSSWrapper(endpoint_url="http://localhost:8000/", temperature=0.0)
 
 # -----------------------------
 # System Message
@@ -109,6 +115,20 @@ Requirements:
 """,
 )
 
+# create validation chain prompt
+oss_validation_prompt = PromptTemplate(
+    input_variables=["mcqs"],
+    template="""
+You are a quality control agent for multiple-choice questions.
+- Check each question, options, and answer for correctness and consistency.
+- Do not add new questions or answers.
+- Return the same JSON structure with corrections if needed.
+- If all questions are correct, return them unchanged.
+
+Input MCQs: {mcqs}
+""",
+)
+
 # -----------------------------
 # LLM Chains
 # -----------------------------
@@ -122,6 +142,7 @@ non_coding_questions_chain = LLMChain(
 )
 coding_mcqs_chain = LLMChain(llm=llm, prompt=coding_mcqs_prompt)
 non_coding_mcqs_chain = LLMChain(llm=llm, prompt=non_coding_mcqs_prompt)
+oss_validation_chain = LLMChain(llm=oss_llm, prompt=oss_validation_prompt)
 
 
 def extract_json_from_response(text):
@@ -190,6 +211,27 @@ def validate_question_structure(questions):
     return valid_questions
 
 
+def run_oss_validation(mcqs, chain):
+    """Run OSS validation safely and fallback to original if OSS fails"""
+    try:
+        # flags hallucination/suggests corrections
+        # this line sends the MCQs to the OSS agent for validation.
+        # OSS checks for inconsistencies, hallucinations, or errors in options/answers
+        response = chain.run({"mcqs": json.dumps(mcqs)})
+        validated = extract_json_from_response(response)
+
+        # if OSS returns valid non-empty list, use it
+        if isinstance(validated, list) and validated:
+            return validated
+        print(
+            "[OSS WARNING] Validation returned empty or invalid, using original MCQs."
+        )
+        return mcqs
+    except Exception as e:
+        print("[OSS ERROR] Exception during validation, using original MCQs:", e)
+        return mcqs
+
+
 def generate_questions(skill_reflection: str, thesis_findings: str, career_goals: str):
     user_input = f"Skill Reflection: {skill_reflection}\nThesis Findings: {thesis_findings}\nCareer Goals: {career_goals}"
 
@@ -211,14 +253,17 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
         # merge all languages into one string for prompt
         langs_str = ", ".join(language_list)
         try:
-            coding_json = coding_questions_chain.run(
+            raw = coding_questions_chain.run(
                 {"topics": topics, "lang": langs_str, "count": total_coding_questions}
             )
-            if isinstance(coding_json, list):
-                coding_questions.extend(coding_json)
+
+            parsed = extract_json_from_response(raw)
+            if isinstance(parsed, list):
+                coding_questions.extend(parsed)
                 print(
-                    f"[SUCCESS] Generated {len(coding_json)} coding questions for {langs_str}"
+                    f"[SUCCESS] Generated {len(coding_questions)} coding questions for {langs_str}"
                 )
+
         except Exception as e:
             print(f"[ERROR] Failed coding questions for {langs_str}:", e)
 
@@ -263,6 +308,16 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
 
         except Exception as e:
             print("[ERROR] Failed non-coding MCQs:", e)
+
+    # validate coding MCQs
+    if coding_mcqs:
+        coding_mcqs = validate_question_structure(coding_mcqs)
+        coding_mcqs = run_oss_validation(coding_mcqs, oss_validation_chain)
+
+    # validate non-coding MCQs
+    if non_coding_mcqs:
+        non_coding_mcqs = validate_question_structure(non_coding_mcqs)
+        non_coding_mcqs = run_oss_validation(non_coding_mcqs, oss_validation_chain)
 
     all_questions = coding_mcqs + non_coding_mcqs
     print("[DEBUG] Total questions generated:", len(all_questions))
