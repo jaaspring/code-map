@@ -7,7 +7,8 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.schema import SystemMessage, HumanMessage
-from gpt_oss.gpt_oss_wrapper import GPTOSSWrapper
+from .gpt_oss.gpt_oss_wrapper import GPTOSSWrapper
+
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
