@@ -116,7 +116,7 @@ def compute_gap_for_single_job(user_test_id: str, job_index: str):
 
     # compute gap for this specific job
     print(f"[DEBUG] Calling compare_and_save for job {job_index}")
-    gap_result = compare_and_save(user_test_id, job_index)
+    gap_result = compare_and_save(user_test_id, job_index, rec_id)
 
     print(f"[DEBUG] compare_and_save result: {gap_result}")
 
