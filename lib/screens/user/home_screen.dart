@@ -7,43 +7,30 @@ import 'package:flutter/material.dart';
 import 'recent_report_widget.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
-  bool _isSearchFocused = false;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
+class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  static const Color geekGreen = Color(0xFF2F8D46);
-  static const Color geekDarkGreen = Color(0xFF1B5E20);
-  static const Color geekLightGreen = Color(0xFF4CAF50);
-  static const Color geekBackground = Color(0xFFE8F5E9);
-  static const Color geekCardBg = Color(0xFFFFFFFF);
+  static const Color geekGreen = Color(0xFF4BC945);
+  static const Color backgroundColor = Color(0xFF000000);
+  static const Color cardBackground = Color(0xFF121212);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFF666666);
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -66,23 +53,21 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // Method to get content for each tab
   Widget _getContentForTab(int index) {
     switch (index) {
       case 0:
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile Section
               Row(
                 children: [
                   Container(
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: geekDarkGreen,
+                      color: geekGreen,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -102,20 +87,20 @@ class _HomePageState extends State<HomePage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Hello, $userName! 👋',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                        const Text(
+                          'Welcome,',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: textSecondary,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Ready to know your career?',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
+                        Text(
+                          userName,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: textPrimary,
                           ),
                         ),
                       ],
@@ -123,227 +108,191 @@ class _HomePageState extends State<HomePage>
                   ),
                 ],
               ),
-
-              const SizedBox(height: 24),
-
-              // SEARCH BAR with filter icon
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        onTap: () => setState(() => _isSearchFocused = true),
-                        onSubmitted: (_) =>
-                            setState(() => _isSearchFocused = false),
-                        decoration: const InputDecoration(
-                          icon:
-                              Icon(Icons.search, color: Colors.grey, size: 22),
-                          hintText: 'Search courses, tutorials...',
-                          hintStyle: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: geekGreen,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: geekGreen.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.tune,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // ACHIEVEMENTS CARD
+              const SizedBox(height: 32),
+              const SizedBox(height: 16),
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                padding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 24,
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                decoration: BoxDecoration(
+                  color: cardBackground,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(Icons.emoji_events,
-                        color: Color(0xFF4CAF50), size: 32),
-                    SizedBox(width: 16),
-                    Text(
-                      '12',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4CAF50),
-                      ),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Badge and',
+                          style: TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: textSecondary,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Achievement',
+                          style: TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 12),
-                    Text(
-                      'Achievements',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: geekGreen.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.emoji_events,
+                        color: geekGreen,
+                        size: 32,
                       ),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 32),
-
-              const RecentReportWidget(),
-
-              const SizedBox(height: 24),
-
-              // GET STARTED SECTION
               const Text(
                 'Get Started',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: textPrimary,
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // CAREER ASSESSMENT CARD
-              ScaleTransition(
-                scale: _pulseAnimation,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [geekGreen, geekDarkGreen],
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: cardBackground,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: geekGreen.withOpacity(0.1),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: geekGreen,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.explore,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Career Assessment',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Start navigating your IT future',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: geekGreen.withOpacity(0.4),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.explore,
-                          color: Colors.white,
-                          size: 36,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Career Assessment',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Discover your perfect IT career path',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const AssessmentScreen()),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: geekGreen,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 28,
-                            vertical: 14,
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Compute these parts of the development to discover the career path that fits your skills and background.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: textSecondary,
+                              height: 1.5,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Start Assessment',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          const AssessmentScreen()),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: geekGreen,
+                                foregroundColor: backgroundColor,
+                                elevation: 0,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Start Assessment',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward, size: 18),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 100),
+              const SizedBox(height: 32),
+              const Text(
+                'Recent Report',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const RecentReportWidget(),
+              const SizedBox(height: 40),
             ],
           ),
         );
@@ -360,78 +309,81 @@ class _HomePageState extends State<HomePage>
               const SizedBox(height: 20),
               const Text(
                 'Profile Screen',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
               ),
               const SizedBox(height: 10),
               Text(
                 'Hello, $userName!',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: textSecondary,
+                ),
               ),
             ],
           ),
         );
       default:
-        return const Center(child: Text('Home Screen Content'));
+        return const Center(
+          child: Text(
+            'Home Screen Content',
+            style: TextStyle(color: textPrimary),
+          ),
+        );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: geekBackground,
-      body: Column(
-        children: [
-          // HEADER
-          Container(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 16,
-              bottom: 16,
-              left: 20,
-              right: 20,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [geekGreen, geekDarkGreen],
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: SizedBox(
+                height: 48,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Center(
+                      child: Image.asset(
+                        'assets/logo_white.png',
+                        height: 18,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.logout,
+                            color: textPrimary, size: 22),
+                        onPressed: () => _logout(context),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '.CodeMap.',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white, size: 22),
-                  onPressed: () => _logout(context),
-                ),
-              ],
-            ),
-          ),
-
-          // CONTENT (shows different content based on selected index)
-          Expanded(
-            child: _getContentForTab(_selectedIndex),
-          ),
-        ],
-      ),
-
-      // BOTTOM NAVIGATION BAR
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, -3),
+            Expanded(
+              child: _getContentForTab(_selectedIndex),
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: cardBackground,
+          border: Border(
+            top: BorderSide(
+              color: Colors.white.withOpacity(0.1),
+              width: 1,
+            ),
+          ),
         ),
         child: SafeArea(
           child: Container(
@@ -463,7 +415,7 @@ class _HomePageState extends State<HomePage>
           children: [
             Icon(
               icon,
-              color: isSelected ? geekGreen : Colors.grey.shade400,
+              color: isSelected ? geekGreen : textSecondary,
               size: 26,
             ),
             const SizedBox(height: 6),
@@ -471,7 +423,7 @@ class _HomePageState extends State<HomePage>
               Container(
                 width: 5,
                 height: 5,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: geekGreen,
                   shape: BoxShape.circle,
                 ),
