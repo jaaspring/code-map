@@ -43,25 +43,43 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: const Color.fromARGB(255, 30, 30, 30),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: const Color.fromARGB(30, 255, 255, 255),
+            width: 1,
+          ),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(),
+              const SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4BC945)),
+                ),
+              ),
               const SizedBox(height: 20),
               Text(
                 loadingMessage,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 10),
               Text(
                 "Attempt ${widget.attemptNumber}",
                 style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.blue,
+                  fontSize: 14,
+                  color: Color(0xFF4BC945),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -107,8 +125,11 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          backgroundColor: const Color.fromARGB(255, 30, 30, 30),
           content: Text(
-              "Error for attempt ${widget.attemptNumber}: ${e.toString()}"),
+            "Error for attempt ${widget.attemptNumber}: ${e.toString()}",
+            style: const TextStyle(color: Colors.white),
+          ),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -122,73 +143,159 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              // Header with back button and logo
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Follow-up Test: Validate Your Skills',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Coding & Technical Assessment',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  Image.asset(
+                    'assets/logo_white.png',
+                    height: 18,
+                    fit: BoxFit.contain,
                   ),
+                  const SizedBox(width: 48),
                 ],
               ),
-            ),
-          ),
 
-          // show attempt info
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.blue[100]!),
-            ),
-            child: Text(
-              'Assessment Attempt ${widget.attemptNumber}',
-              style: TextStyle(
-                color: Colors.blue[700],
-                fontWeight: FontWeight.w600,
+              // Main content
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Follow-up Test\nValidate Your Skills',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: const Color.fromARGB(255, 255, 255, 255),
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Subtitle
+                    Text(
+                      '3 out of 3 assessments to help\npersonalize your journey.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        color: const Color.fromARGB(136, 255, 255, 255),
+                        height: 1.5,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Attempt info badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(30, 75, 201, 69),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFF4BC945),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'Assessment Attempt ${widget.attemptNumber}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: const Color(0xFF4BC945),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Warning message
+                    if (_showWarning)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Text(
+                          "Please check your connection and try again\nAttempt ${widget.attemptNumber}",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFFFFA500),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ),
 
-          const SizedBox(height: 20),
-
-          if (_showWarning)
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
-              child: Text(
-                "Please check your connection and try again\nAttempt ${widget.attemptNumber}",
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.orange, fontSize: 14),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: _isLoading
-                ? const CircularProgressIndicator()
-                : SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _startFollowUp(context),
-                      child: const Text('Start Attempt'),
+              // Start button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : () => _startFollowUp(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isLoading
+                        ? const Color.fromARGB(255, 40, 40, 40)
+                        : const Color(0xFF4BC945),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
+                  child: _isLoading
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Starting...',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.9),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Text(
+                          'Start Test',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
