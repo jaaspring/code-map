@@ -279,25 +279,24 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       final results = await ApiService.getCareerRoadmap(
           widget.userTestId, currentJobIndex!);
 
-      // extract the data
-      final responseData = results['data'];
-      if (responseData == null) {
-        throw Exception('No data in response');
+      // Check if there's an error message from backend
+      if (results.containsKey('error')) {
+        throw Exception(results['error']);
       }
 
-      // the actual roadmap data is in responseData['data']
-      final roadmapData = responseData['data'];
+      final roadmapData = results['data'];
       if (roadmapData == null) {
-        throw Exception('No roadmap data found');
+        throw Exception('No roadmap data found in response');
       }
 
-      // transform the data into the structure needed for the UI
-      final Map<String, Map<String, List<String>>> levels = {};
+      // extract topics and sub_topics
+      Map<String, Map<String, List<String>>> levels = {};
 
-      // process topics and sub_topics
-      if (roadmapData['topics'] != null && roadmapData['sub_topics'] != null) {
-        final topics = Map<String, dynamic>.from(roadmapData['topics']);
-        final subTopics = Map<String, dynamic>.from(roadmapData['sub_topics']);
+      if (roadmapData.containsKey('topics') &&
+          roadmapData.containsKey('sub_topics')) {
+        final topics = Map<String, dynamic>.from(roadmapData['topics'] ?? {});
+        final subTopics =
+            Map<String, dynamic>.from(roadmapData['sub_topics'] ?? {});
 
         topics.forEach((topicName, level) {
           final levelName = _formatLevelName(level.toString());
@@ -308,13 +307,35 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
           }
           levels[levelName]![topicName] = topicSubTopics;
         });
+      } else {
+        if (roadmapData.containsKey('roadmap')) {
+          final nestedData = roadmapData['roadmap'];
+          if (nestedData.containsKey('topics') &&
+              nestedData.containsKey('sub_topics')) {
+            final topics =
+                Map<String, dynamic>.from(nestedData['topics'] ?? {});
+            final subTopics =
+                Map<String, dynamic>.from(nestedData['sub_topics'] ?? {});
+
+            topics.forEach((topicName, level) {
+              final levelName = _formatLevelName(level.toString());
+              final topicSubTopics =
+                  List<String>.from(subTopics[topicName] ?? []);
+
+              if (!levels.containsKey(levelName)) {
+                levels[levelName] = {};
+              }
+              levels[levelName]![topicName] = topicSubTopics;
+            });
+          }
+        }
       }
 
       setState(() {
         roadmap = {
           'user_test_id': roadmapData['user_test_id'] ?? widget.userTestId,
-          'job_index': roadmapData['job_index'] ?? currentJobIndex,
-          'job_title': currentJobTitle,
+          'job_index': roadmapData['job_match_id'] ?? currentJobIndex,
+          'job_title': currentJobTitle ?? roadmapData['job_title'] ?? 'Career',
           'levels': levels,
         };
         isLoading = false;
