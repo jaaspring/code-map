@@ -28,6 +28,13 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
   bool isLoading = true;
   bool isLoadingJobs = true;
 
+  // Design constants
+  static const Color geekGreen = Color(0xFF4BC945);
+  static const Color backgroundColor = Color(0xFF000000);
+  static const Color cardBackground = Color(0xFF121212);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFF666666);
+
   // retake tracking
   bool _canRetake = true;
   int _daysUntilRetake = 0;
@@ -76,10 +83,11 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: cardBackground,
         surfaceTintColor: Colors.transparent,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withOpacity(0.5),
         elevation: 8,
         title: Container(
           padding: const EdgeInsets.only(bottom: 8),
@@ -88,12 +96,12 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber[50],
+                  color: geekGreen.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.refresh_rounded,
-                  color: Colors.amber,
+                  color: geekGreen,
                   size: 28,
                 ),
               ),
@@ -103,7 +111,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black87,
+                  color: textPrimary,
                 ),
               ),
             ],
@@ -117,18 +125,17 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).primaryColor,
-                backgroundColor:
-                    Theme.of(context).primaryColor.withOpacity(0.1),
+                color: geekGreen,
+                backgroundColor: geekGreen.withOpacity(0.1),
               ),
             ),
             const SizedBox(height: 12),
             Text(
               'You\'re about to start a new assessment. Are you sure you want to proceed?',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: Colors.grey[700],
+                color: textSecondary,
                 height: 1.5,
               ),
             ),
@@ -136,24 +143,24 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: backgroundColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
               ),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.info_outline_rounded,
                     size: 18,
-                    color: Colors.blue[600],
+                    color: geekGreen,
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
+                  const Expanded(
                     child: Text(
-                      'Don\t worry, your previous results will be saved! :D',
+                      'Don\'t worry, your previous results will be saved! :D',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: textSecondary,
                       ),
                     ),
                   ),
@@ -171,8 +178,8 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey[700],
-                      side: BorderSide(color: Colors.grey[300]!),
+                      foregroundColor: textSecondary,
+                      side: BorderSide(color: Colors.grey[800]!),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -181,7 +188,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                     child: const Text(
                       'Not Now',
                       style: TextStyle(fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.center, // Add this
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -190,7 +197,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context, true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
+                      backgroundColor: geekGreen,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -201,7 +208,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                     child: const Text(
                       'Proceed',
                       style: TextStyle(fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.center, // Add this
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -399,20 +406,23 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBackground,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(strokeWidth: 2),
+            CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(geekGreen),
+            ),
             SizedBox(width: 12),
             Text(
               'Loading careers...',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey,
+                color: textSecondary,
               ),
             ),
           ],
@@ -424,22 +434,22 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBackground,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
-        child: Row(
+        child: const Row(
           children: [
             Icon(
               Icons.work_off_outlined,
               size: 20,
-              color: Colors.grey[400],
+              color: textSecondary,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Text(
               'No recommended jobs found',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: textSecondary,
                 fontSize: 14,
               ),
             ),
@@ -451,16 +461,9 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -468,18 +471,18 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
           value: currentJobIndex,
           isExpanded: true,
           underline: const SizedBox(), // Remove default underline
-          icon: Icon(
+          icon: const Icon(
             Icons.arrow_drop_down_rounded,
-            color: Colors.grey[600],
+            color: textSecondary,
             size: 24,
           ),
           style: const TextStyle(
             fontSize: 16,
-            color: Colors.black87,
+            color: textPrimary,
             fontWeight: FontWeight.w500,
           ),
           borderRadius: BorderRadius.circular(12),
-          dropdownColor: Colors.white,
+          dropdownColor: cardBackground,
           onChanged: _onJobSelected,
           items: [
             // Default hint item
@@ -511,7 +514,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: geekGreen.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -519,7 +522,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Colors.grey[700],
+                            color: geekGreen,
                           ),
                         ),
                       ),
@@ -530,7 +533,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black87,
+                            color: textPrimary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -548,21 +551,26 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
 
   Widget _buildRoadmapContent() {
     if (isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(strokeWidth: 3),
-            SizedBox(height: 20),
-            Text(
-              'Loading your career roadmap...',
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.black54,
-                fontWeight: FontWeight.w500,
+      return const Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(geekGreen),
               ),
-            ),
-          ],
+              SizedBox(height: 20),
+              Text(
+                'Loading your career roadmap...',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -646,16 +654,9 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
           margin: const EdgeInsets.symmetric(horizontal: 24),
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardBackground,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.grey[300]!, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -663,13 +664,13 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Colors.white.withOpacity(0.05),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.school_outlined,
                   size: 64,
-                  color: Colors.grey[400],
+                  color: textSecondary,
                 ),
               ),
               const SizedBox(height: 24),
@@ -678,16 +679,16 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
+              const Text(
                 'Complete your assessments to unlock your\npersonalized career roadmap! :D',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: textSecondary,
                   height: 1.5,
                 ),
               ),
@@ -747,23 +748,9 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Colors.grey[50]!,
-          ],
-        ),
+        color: cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[300]!, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -773,12 +760,12 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: geekGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.route_rounded,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: geekGreen,
                   size: 22,
                 ),
               ),
@@ -786,10 +773,10 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
               Expanded(
                 child: Text(
                   'Personalized Career Roadmap',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: geekGreen,
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -802,16 +789,16 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: Colors.black87,
+              color: textPrimary,
               height: 1.2,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Your step-by-step learning journey to become a ${currentJobTitle ?? 'professional'}',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -868,16 +855,17 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                     size: 28,
                   ),
                   const SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Container(
                     height: 2,
                     width: 3,
-                    color: Colors.grey[400],
+                    color: Colors.white.withOpacity(0.2),
                   ),
                   const SizedBox(height: 4),
                   Container(
                     height: 2,
                     width: 3,
-                    color: Colors.grey[400],
+                    color: Colors.white.withOpacity(0.2),
                   ),
                 ],
               ),
@@ -912,19 +900,12 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBackground,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: backgroundColor.withOpacity(0.3),
-          width: 2.5,
+          width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: backgroundColor.withOpacity(0.15),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-        ],
       ),
       child: Stack(
         children: [
@@ -1091,16 +1072,9 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1129,7 +1103,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black87,
+                          color: textPrimary,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -1157,9 +1131,9 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                                         Expanded(
                                           child: Text(
                                             subTopic,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontSize: 13,
-                                              color: Colors.grey[700],
+                                              color: textSecondary,
                                               height: 1.5,
                                               fontWeight: FontWeight.w500,
                                             ),
@@ -1185,123 +1159,127 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FC),
-      appBar: AppBar(
-        title: const Text(
-          'Career Roadmap',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 22,
-            letterSpacing: 0.3,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        centerTitle: false,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.grey[200],
-            height: 1,
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Your Career Journey',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: Colors.black87,
-                letterSpacing: 0.2,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Select a career path and follow the learning roadmap',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildJobSelector(),
-            const SizedBox(height: 24),
-            _buildRoadmapContent(),
-          ],
-        ),
-      ),
-      persistentFooterButtons: [
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HomePage(),
-                    ),
-                    (route) => false,
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              // Header with back button and logo
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
                   ),
-                  elevation: 2,
+                  Image.asset(
+                    'assets/logo_white.png',
+                    height: 18,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              const Text(
+                'Your Career Journey',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: textPrimary,
+                  letterSpacing: 0.2,
                 ),
-                child: const Text(
-                  "Complete",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Select a career path and follow the learning roadmap',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildJobSelector(),
+              const SizedBox(height: 24),
+              _buildRoadmapContent(),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        color: backgroundColor,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: SafeArea(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _canRetake ? _handleRetake : null,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: geekGreen,
+                    side: BorderSide(
+                      color: _canRetake ? geekGreen : Colors.grey[800]!,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    _canRetake
+                        ? "Retake Test"
+                        : _userAttempts.length >= 10
+                            ? "Max Attempts"
+                            : "Wait $_daysUntilRetake days",
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: _canRetake ? _handleRetake : null,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).primaryColor,
-                  side: BorderSide(
-                    color: _canRetake
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey[300]!,
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HomePage(),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: geekGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  _canRetake
-                      ? "Retake Test (Attempt ${_userAttempts.length + 1})"
-                      : _userAttempts.length >= 10
-                          ? "Max Attempts Reached"
-                          : "Retake Available in $_daysUntilRetake days",
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  child: const Text(
+                    "Complete",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
