@@ -17,7 +17,7 @@ class CareerGoals extends StatefulWidget {
 class _CareerGoalsState extends State<CareerGoals> {
   late TextEditingController _controller;
   int _charCount = 0;
-  bool _isSubmitting = false; // add loading state
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -39,24 +39,23 @@ class _CareerGoalsState extends State<CareerGoals> {
   }
 
   void _onCompletePressed() async {
-    final user = FirebaseAuth.instance
-        .currentUser; // gets the currently signed-in user from Firebase Authentication
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final uid = user.uid; // extract the user's unique ID
+    final uid = user.uid;
 
     // check existing attempts
     final userDoc =
         await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
-    int attemptNumber = 1; // assume first attempt
+    int attemptNumber = 1;
     if (userDoc.exists) {
       final attempts = userDoc.data()?['assessmentAttempts'] as List? ?? [];
       attemptNumber = attempts.length + 1;
     }
 
-    if (_isSubmitting) return; // prevent multiple submissions
+    if (_isSubmitting) return;
 
-    final text = _controller.text.trim(); // remove leading/trailing spaces
+    final text = _controller.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -67,7 +66,7 @@ class _CareerGoalsState extends State<CareerGoals> {
       return;
     }
 
-    if (_charCount < 100) {
+    if (_charCount < 200) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -79,19 +78,15 @@ class _CareerGoalsState extends State<CareerGoals> {
     }
 
     setState(() {
-      _isSubmitting = true; // set loading state
+      _isSubmitting = true;
     });
 
     try {
-      // save career goals to user response
       widget.userResponse.careerGoals = _controller.text;
-
-      // submit test -> backend creates userTestId
       final userTestId = await ApiService.submitTest(widget.userResponse);
 
-      // update user document with userTestId and new attempt
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'userTestId': userTestId, // link userTestId to user document
+        'userTestId': userTestId,
         'assessmentAttempts': FieldValue.arrayUnion([
           {
             'attemptNumber': attemptNumber,
@@ -103,14 +98,13 @@ class _CareerGoalsState extends State<CareerGoals> {
         'testIds': FieldValue.arrayUnion([userTestId])
       });
 
-      // navigate to FollowUpScreen with the userTestId and attempt number
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => FollowUpScreen(
             userResponse: widget.userResponse,
-            userTestId: userTestId, // pass the userTestId
-            attemptNumber: attemptNumber, // pass the attempt number
+            userTestId: userTestId,
+            attemptNumber: attemptNumber,
           ),
         ),
       );
@@ -129,77 +123,131 @@ class _CareerGoalsState extends State<CareerGoals> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Career Goals")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              "What is your career goals?",
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText:
-                      "In your own words, describe your career goals. Share the roles, industries, or specializations you aspire to. Mention long-term ambitions, short-term objectives, or the kind of impact you hope to create in your career.",
-                  hintMaxLines: 10,
-                ),
-                minLines: 20,
-                maxLines: 20,
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header with back button and logo
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                  ),
+                  Image.asset(
+                    'assets/logo_white.png',
+                    height: 18,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 48),
+                ],
               ),
-            ),
-            const SizedBox(height: 10),
+              const SizedBox(height: 32),
 
-            // Character counter + progress bar
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _charCount < 200
-                      ? '$_charCount characters entered (${200 - _charCount} more needed)'
-                      : '$_charCount characters entered (minimum met)',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: _charCount < 200 ? Colors.red : Colors.green,
-                    fontWeight: FontWeight.w500,
+              // Question text
+              const Text(
+                "What is your career goals?",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color.fromARGB(255, 255, 255, 255),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Text field
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 18, 18, 18),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color.fromARGB(30, 255, 255, 255),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _controller,
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 255, 255, 255),
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(16),
+                      hintText:
+                          "In your own words, describe your career goals. Share the roles, industries, or specializations you aspire to. Mention long-term ambitions, short-term objectives, interest, or the kind of impact you hope to create in your career.",
+                      hintStyle: TextStyle(
+                        color: Color.fromARGB(100, 255, 255, 255),
+                        fontSize: 15,
+                        height: 1.5,
+                      ),
+                    ),
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
                   ),
                 ),
-                const SizedBox(height: 5),
-                LinearProgressIndicator(
-                  value: (_charCount / 200).clamp(0, 1),
-                  backgroundColor: Colors.grey[300],
-                  color: _charCount < 200 ? Colors.red : Colors.green,
-                  minHeight: 6,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
 
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _onCompletePressed,
-              child: _isSubmitting
-                  ? const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
+              Text(
+                'Character count: $_charCount/200',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: _charCount < 200
+                      ? const Color.fromARGB(136, 255, 255, 255)
+                      : const Color(0xFF4BC945),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Next button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _onCompletePressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4BC945),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor:
                                 AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
+                        )
+                      : const Text(
+                          'Complete',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ],
-                    )
-                  : const Text("Complete"),
-            ),
-          ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

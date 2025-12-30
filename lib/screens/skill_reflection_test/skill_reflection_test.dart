@@ -81,39 +81,122 @@ class _SkillReflectionTestState extends State<SkillReflectionTest> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Skill Reflection")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              "What IT skills and strengths are you most proud of, and why?",
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText:
-                      "In your own words, describe the skills you are most confident in. Mention any tools, programming languages you haven't mentioned previously, or technical concepts you are familiar with. You may also include soft skills, previous projects, or anything you believe showcases your strengths.",
-                  hintMaxLines: 10,
-                ),
-                minLines: 20,
-                maxLines: 20,
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // header with back button and logo
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                  ),
+                  Image.asset(
+                    'assets/logo_white.png',
+                    height: 18,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 48),
+                ],
               ),
-            ),
-            const SizedBox(height: 10),
-            Text('Character count: $_charCount/500',
-                textAlign: TextAlign.right),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _onCompletePressed,
-              child: const Text("Next"),
-            ),
-          ],
+              const SizedBox(height: 32),
+
+              // Question text
+              const Text(
+                "What IT skills and strengths are you most proud of, and why?",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color.fromARGB(255, 255, 255, 255),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Text field
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 18, 18, 18),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color.fromARGB(30, 255, 255, 255),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _controller,
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 255, 255, 255),
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(16),
+                      hintText:
+                          "In your own words, describe the skills you are most confident in. Mention any tools, programming languages you haven't mentioned previously, or technical concepts you are familiar with. You may also include soft skills, previous projects, or anything you believe showcases your strengths.",
+                      hintStyle: TextStyle(
+                        color: Color.fromARGB(100, 255, 255, 255),
+                        fontSize: 15,
+                        height: 1.5,
+                      ),
+                    ),
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Character count
+              Text(
+                'Character count: $_charCount/200',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: _charCount < 200
+                      ? const Color.fromARGB(136, 255, 255, 255)
+                      : const Color(0xFF4BC945),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Next button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _onCompletePressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4BC945),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Next',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
