@@ -257,7 +257,7 @@ class _HomePageState extends State<HomePage> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: geekGreen,
-                                foregroundColor: backgroundColor,
+                                foregroundColor: textPrimary,
                                 elevation: 0,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 16),
@@ -269,7 +269,7 @@ class _HomePageState extends State<HomePage> {
                                 'Start Assessment',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                   letterSpacing: 0.5,
                                 ),
                               ),

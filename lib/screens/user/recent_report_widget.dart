@@ -107,7 +107,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
         }
       }
 
-      // Sort jobs by similarity percentage (highest first)
+      // sort jobs by similarity percentage (highest first)
       _availableJobs.sort((a, b) {
         final aPercent =
             double.tryParse(a['similarity_percentage']?.toString() ?? '0') ?? 0;
@@ -159,11 +159,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     });
   }
 
-  String _truncateText(String text, {int maxLength = 80}) {
-    if (text.length <= maxLength) return text;
-    return '${text.substring(0, maxLength)}...';
-  }
-
   Color _getSimilarityColor(double percentage) {
     if (percentage >= 80) return const Color(0xFF4BC945);
     if (percentage >= 70) return const Color(0xFF5FD954);
@@ -188,10 +183,8 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // FLEXIBLE HEADER SECTION
           _buildHeaderSection(showBestMatchLabel),
 
-          // CONDITIONAL DROPDOWN SECTION
           if (_showJobDropdown && _availableJobs.length > 1)
             _buildDropdownSection(),
 
@@ -211,7 +204,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // HEADER SECTION - Flexible with adaptive layout
   Widget _buildHeaderSection(bool showBestMatchLabel) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -221,7 +213,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // LEFT SECTION - Match badges
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,8 +232,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                 ],
               ),
             ),
-
-            // RIGHT SECTION - Dropdown button
             if (_availableJobs.length > 1)
               Padding(
                 padding: const EdgeInsets.only(left: 8),
@@ -260,12 +249,11 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // BEST MATCH BADGE
   Widget _buildBestMatchBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
             Color(0xFF4BC945),
             Color(0xFF3BA535),
@@ -293,7 +281,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             fit: BoxFit.contain,
           ),
           const SizedBox(width: 6),
-          Text(
+          const Text(
             'Best Match',
             style: TextStyle(
               fontSize: 12,
@@ -306,7 +294,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // SIMILARITY BADGE
   Widget _buildSimilarityBadge(Map<String, dynamic> job) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -332,7 +319,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // DROPDOWN BUTTON
   Widget _buildDropdownButton(bool isCompact) {
     final currentIndex = _selectedJob != null
         ? _availableJobs.indexWhere(
@@ -349,7 +335,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
         ),
         constraints: const BoxConstraints(maxWidth: 180),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [
               Color(0xFF4BC945),
               Color(0xFF3BA535),
@@ -398,7 +384,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // DROPDOWN SECTION - Clean design without medals or check marks
   Widget _buildDropdownSection() {
     return Column(
       children: [
@@ -418,8 +403,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
               final similarity = double.tryParse(
                       job['similarity_percentage']?.toString() ?? '0') ??
                   0;
-              final isBestMatch =
-                  job['job_index'] == _highestSimilarityJobIndex;
 
               return GestureDetector(
                 onTap: () => _onJobSelected(job),
@@ -440,7 +423,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                   ),
                   child: Row(
                     children: [
-                      // SIMILARITY INDICATOR
                       Container(
                         width: 40,
                         height: 40,
@@ -469,8 +451,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                         ),
                       ),
                       const SizedBox(width: 12),
-
-                      // JOB INFO
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,7 +477,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                             const SizedBox(height: 4),
                             Text(
                               'Rank #${index + 1}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF6B7F6B), // Muted sage green
                                 fontWeight: FontWeight.w500,
@@ -517,15 +497,14 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // LOADING STATE
   Widget _buildLoadingState() {
-    return Center(
+    return const Center(
       child: Column(
         children: [
-          const CircularProgressIndicator(
+          CircularProgressIndicator(
             color: Color(0xFF4BC945),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Loading your career recommendations...',
             style: TextStyle(
@@ -539,32 +518,40 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // ERROR STATE
   Widget _buildErrorState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.error_outline,
-          color: Color(0xFF666666),
-          size: 48,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          _errorMessage!,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFF666666),
-            fontSize: 12,
-            fontFamily: 'Poppins',
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(height: 16),
+          Text(
+            'No career\nrecommendations yet',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'JetBrainsMono',
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              height: 1.2,
+            ),
           ),
-        ),
-      ],
+          SizedBox(height: 8),
+          // Subtext
+          Text(
+            'Complete an assessment to see your matches! :D',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF666666),
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  // NO REPORT STATE
   Widget _buildNoReportState() {
     return Center(
       child: Column(
@@ -582,7 +569,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                 width: 2,
               ),
             ),
-            child: Center(
+            child: const Center(
               child: Icon(
                 Icons.work_outline,
                 size: 40,
@@ -603,7 +590,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Complete an assessment to see your matches! :D',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -618,7 +605,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // REPORT CONTENT - Flexible structure
   Widget _buildReportContent() {
     final jobTitle =
         _reportData!['job']?['job_title'] ?? 'Job Title Not Available';
@@ -633,7 +619,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // JOB TITLE
         Container(
           margin: const EdgeInsets.only(bottom: 8),
           child: Text(
@@ -648,13 +633,12 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
           ),
         ),
 
-        // JOB DESCRIPTION
         const SizedBox(height: 4),
         Container(
           margin: const EdgeInsets.only(bottom: 16),
           child: Text(
             jobDescription,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               color: Color(0xFFCCCCCC),
               height: 1.6,
@@ -665,7 +649,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
           ),
         ),
 
-        // SKILLS MATCH
         if (_reportData!['job']?['required_skills'] != null)
           Container(
             margin: const EdgeInsets.only(bottom: 24),
@@ -708,7 +691,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // ACTION BUTTONS - Responsive layout
   Widget _buildActionButtons() {
     final hasMultipleJobs = _availableJobs.length > 1;
 
@@ -716,7 +698,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
       height: 48,
       child: Row(
         children: [
-          // PREVIOUS BUTTON
           if (hasMultipleJobs) ...[
             _buildNavButton(
               iconWidget: Image.asset(
@@ -736,13 +717,11 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             ),
             const SizedBox(width: 12),
           ],
-
-          // VIEW REPORT BUTTON
           Expanded(
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [
                     Color(0xFF4BC945),
                     Color(0xFF3BA535),
@@ -753,9 +732,9 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0xFF4BC945).withOpacity(0.3),
+                    color: const Color(0xFF4BC945).withOpacity(0.3),
                     blurRadius: 8,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
@@ -797,8 +776,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
               ),
             ),
           ),
-
-          // NEXT BUTTON
           if (hasMultipleJobs) ...[
             const SizedBox(width: 12),
             _buildNavButton(
@@ -822,7 +799,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     );
   }
 
-  // NAVIGATION BUTTON
   Widget _buildNavButton({
     required Widget iconWidget,
     required VoidCallback onPressed,
