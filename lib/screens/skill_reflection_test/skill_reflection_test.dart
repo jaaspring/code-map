@@ -159,11 +159,11 @@ class _SkillReflectionTestState extends State<SkillReflectionTest> {
 
               // Character count
               Text(
-                'Character count: $_charCount/200',
+                'Character count: $_charCount/500',
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   fontSize: 14,
-                  color: _charCount < 200
+                  color: _charCount < 500
                       ? const Color.fromARGB(136, 255, 255, 255)
                       : const Color(0xFF4BC945),
                 ),
