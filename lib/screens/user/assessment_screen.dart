@@ -7,7 +7,7 @@ class AssessmentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -17,12 +17,13 @@ class AssessmentScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black),
+                    icon: const Icon(Icons.arrow_back,
+                        color: Color.fromARGB(255, 255, 255, 255)),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
                   ),
                   Image.asset(
-                    'assets/logo_only.png',
+                    'assets/logo_white.png',
                     height: 18,
                     fit: BoxFit.contain,
                   ),
@@ -33,7 +34,7 @@ class AssessmentScreen extends StatelessWidget {
               Column(
                 children: [
                   Image.asset(
-                    'assets/logo_only.png',
+                    'assets/logo_white.png',
                     height: 50,
                     fit: BoxFit.contain,
                   ),
@@ -44,7 +45,7 @@ class AssessmentScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
-                      color: Colors.black,
+                      color: Color.fromARGB(255, 255, 255, 255),
                       height: 1.3,
                     ),
                   ),
@@ -55,7 +56,7 @@ class AssessmentScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
-                      color: Colors.black54,
+                      color: Color.fromARGB(136, 255, 255, 255),
                       height: 1.5,
                     ),
                   ),
@@ -75,7 +76,7 @@ class AssessmentScreen extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: const Color(0xFF4BC945),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 18),
