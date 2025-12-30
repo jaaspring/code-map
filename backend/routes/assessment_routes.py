@@ -2,7 +2,6 @@
 
 from fastapi import APIRouter, Body, Query
 from schemas.assessment import (
-    SkillReflectionRequest,
     FollowUpResponses,
     JobMatch,
     UserProfileMatchResponse,
@@ -19,7 +18,7 @@ from services.embedding_service import (
 )
 from services.gap_analysis_service import (
     compute_gap_for_single_job,
-    compute_gaps_for_all_jobs,
+    compute_gaps_for_jobs,
 )
 from services.report_generation_service import get_report_data
 from models.firestore_models import (
@@ -68,23 +67,19 @@ def submit_test(data: UserResponses):
 # Generate follow-up questions
 # -----------------------------
 @router.post("/generate-questions")
-def create_follow_up_questions(data: SkillReflectionRequest):
+def create_follow_up_questions(user_test_id: str = Body(..., embed=True)):
     # get the user test document
-    user_ref = db.collection("user_tests").document(data.user_test_id).get()
-    print(f"Checked user_tests/{data.user_test_id} - exists: {user_ref.exists}")
+    user_ref = db.collection("user_tests").document(user_test_id).get()
+    print(f"Checked user_tests/{user_test_id} - exists: {user_ref.exists}")
 
     if not user_ref.exists:
         return {"error": "User test not found"}
 
     # find which user owns this test (look in users collection)
-    print(
-        f"Querying users where assessmentAttempts contains testId: {data.user_test_id}"
-    )
+    print(f"Querying users where assessmentAttempts contains testId: {user_test_id}")
 
     user_query = (
-        db.collection("users")
-        .where("testIds", "array_contains", data.user_test_id)
-        .limit(1)
+        db.collection("users").where("testIds", "array_contains", user_test_id).limit(1)
     )
 
     user_docs = list(user_query.stream())
@@ -98,11 +93,11 @@ def create_follow_up_questions(data: SkillReflectionRequest):
     attempt_number = 1  # default if not found
 
     for attempt in assessment_attempts:
-        if attempt.get("testId") == data.user_test_id:
+        if attempt.get("testId") == user_test_id:
             attempt_number = attempt.get("attemptNumber", 1)
             break
 
-    print(f"User attempt number for {data.user_test_id}: {attempt_number}")
+    print(f"User attempt number for {user_test_id}: {attempt_number}")
 
     # get reflection data from saved user test document
     user_test_data = user_ref.to_dict()
@@ -125,7 +120,7 @@ def create_follow_up_questions(data: SkillReflectionRequest):
     for q in raw_questions:
         try:
             question_id = add_generated_question(
-                user_id=data.user_test_id,
+                user_id=user_test_id,
                 question_text=q.get("question", ""),
                 code=q.get("code", None),
                 language=q.get("language", None),
@@ -190,35 +185,32 @@ def submit_follow_up(data: FollowUpResponses):
 # -----------------------------
 # Generate user profile and job matches
 # -----------------------------
-@router.post("/user-profile-match", response_model=UserProfileMatchResponse)
-def user_profile_match(request: SkillReflectionRequest):
-    print(f"=== USER-PROFILE-MATCH CALLED ===")
-    print(f"Request received for user_test_id: {request.user_test_id}")
-
-    user_ref = db.collection("user_tests").document(request.user_test_id).get()
+@router.post(
+    "/user-profile-match", response_model=UserProfileMatchResponse
+)  # ensures the API response follows this schema and filters extra fields
+def user_profile_match(user_test_id: str = Body(..., embed=True)):
+    user_ref = db.collection("user_tests").document(user_test_id).get()
     if not user_ref.exists:
         print(f"ERROR: User test not found")
         return UserProfileMatchResponse(
             profile_text="",
-            top_matches=[],
-            error=f"User test ID {request.user_test_id} not found",
+            job_matches=[],
+            error=f"User test ID {user_test_id} not found",
         )
 
-    user_data = create_user_embedding(request.user_test_id)
+    user_data = create_user_embedding(user_test_id)
     if not user_data or "error" in user_data:
         return UserProfileMatchResponse(
             profile_text="",
-            top_matches=[],
+            jop_matches=[],
             error=f"User embedding failed: {user_data.get('error', 'Unknown error') if user_data else 'No data returned'}",
         )
 
     # analyze skills/knowledge
     try:
-        skills_knowledge_result = analyze_user_skills_knowledge(request.user_test_id)
+        skills_knowledge_result = analyze_user_skills_knowledge(user_test_id)
         if skills_knowledge_result and "error" not in skills_knowledge_result:
-            print(
-                f"[INFO] Skills/Knowledge saved for user_test_id {request.user_test_id}"
-            )
+            print(f"[INFO] Skills/Knowledge saved for user_test_id {user_test_id}")
             print(f"Extracted skills: {skills_knowledge_result.get('skills', [])}")
             print(
                 f"Extracted knowledge: {skills_knowledge_result.get('knowledge', [])}"
@@ -227,28 +219,28 @@ def user_profile_match(request: SkillReflectionRequest):
         print(f"[ERROR] Skills/Knowledge analysis failed: {str(e)}")
 
     # match jobs
-    matches = match_user_to_job(request.user_test_id, user_data.get("user_embedding"))
+    matches = match_user_to_job(user_test_id, user_data.get("user_embedding"))
 
     print(f"Matches found: {matches is not None}")
     print(f"Matches has error: {'error' in matches if matches else 'No matches'}")
     print(
-        f"Number of top_matches: {len(matches.get('top_matches', [])) if matches else 0}"
+        f"Number of job_matches: {len(matches.get('job_matches', [])) if matches else 0}"
     )
 
     if not matches or "error" in matches:
         return UserProfileMatchResponse(
             profile_text=user_data.get("profile_text", ""),
-            top_matches=[],
+            job_matches=[],
         )
 
     # save into Firestore
     try:
         rec_id = add_career_recommendation(
-            request.user_test_id, profile_text=user_data.get("profile_text", "")
+            user_test_id, profile_text=user_data.get("profile_text", "")
         )
         print(f"SUCCESS: Created career recommendation ID: {rec_id}")
 
-        for job in matches.get("top_matches", []):
+        for job in matches.get("job_matches", []):
             add_job_match(
                 recommendation_id=rec_id,
                 job_id=str(job.get("job_index", "")),
@@ -259,11 +251,11 @@ def user_profile_match(request: SkillReflectionRequest):
                 required_skills=job.get("required_skills", {}),
                 required_knowledge=job.get("required_knowledge", {}),
             )
-            print(f"SUCCESS: Saved {len(matches.get('top_matches', []))} job matches")
+            print(f"SUCCESS: Saved {len(matches.get('job_matches', []))} job matches")
     except Exception as e:
         print(f"[ERROR] Failed to save career recommendation/job matches: {str(e)}")
 
-    top_matches_list = [
+    job_matches_list = [
         JobMatch(
             job_index=str(job.get("job_index", "")),
             job_title=job.get("job_title", ""),
@@ -273,12 +265,12 @@ def user_profile_match(request: SkillReflectionRequest):
             required_skills=job.get("required_skills", {}),
             required_knowledge=job.get("required_knowledge", {}),
         )
-        for job in matches.get("top_matches", [])
+        for job in matches.get("job_matches", [])
     ]
 
     return UserProfileMatchResponse(
         profile_text=user_data.get("profile_text", ""),
-        top_matches=top_matches_list,
+        job_matches=job_matches_list,
     )
 
 
@@ -290,13 +282,15 @@ def user_profile_match(request: SkillReflectionRequest):
 def run_gap_analysis_all(user_test_id: str):
     print(f"[GAP DEBUG] Starting gap analysis for test: {user_test_id}")
 
+    # get recommendation ID based on user_test_id
     rec_id = get_recommendation_id_by_user_test_id(user_test_id)
     print(f"[GAP DEBUG] Found recommendation ID: {rec_id}")
 
+    # get all recommended jobs for this recommendation
     recommended_jobs = get_all_jobs(rec_id)
     print(f"[GAP DEBUG] Found {len(recommended_jobs)} recommended jobs")
 
-    results = compute_gaps_for_all_jobs(user_test_id)
+    results = compute_gaps_for_jobs(user_test_id, rec_id, recommended_jobs)
     if isinstance(results, dict) and results.get("error"):
         return {"error": results["error"]}
     return {"message": "Skill gaps computed", "data": results}
@@ -404,11 +398,11 @@ def generate_career_roadmaps(user_test_id: str):
 # -----------------------------
 # Career Roadmap Retrieval
 # -----------------------------
-@router.get("/career-roadmap-retrieval/{user_test_id}/{job_index}")
+@router.get("/career-roadmap-retrieval/{user_test_id}/{job_match_id}")
 # FastAPI automatically extracts user_test_id and job_index from the URL and passes it as the function argument.
-def get_career_roadmap(user_test_id: str, job_index: str):
+def get_career_roadmap(user_test_id: str, job_match_id: str):
     """Retrieve career roadmap for a specific job."""
-    roadmap_data = retrieve_career_roadmap(user_test_id, job_index)
+    roadmap_data = retrieve_career_roadmap(user_test_id, job_match_id)
 
     if "error" in roadmap_data:
         return roadmap_data

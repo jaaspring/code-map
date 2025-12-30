@@ -8,7 +8,7 @@ from models.firestore_models import (
 )
 import matplotlib
 
-matplotlib.use("Agg")  # non-interactive backend
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import io
@@ -24,7 +24,6 @@ LEVEL_MAP = {
 
 
 def normalize_level(level):
-    """Convert skill level text/number into a consistent numeric scale."""
     if isinstance(level, (int, float)):
         return level
     if level is None:
@@ -33,7 +32,6 @@ def normalize_level(level):
 
 
 def generate_radar_chart(skills, user_level, required_level):
-    """Generate radar chart and return as base64 string."""
     angles = np.linspace(0, 2 * np.pi, len(skills), endpoint=False).tolist()
     user_level_radar = user_level + user_level[:1]
     required_level_radar = required_level + required_level[:1]
@@ -73,7 +71,6 @@ def generate_radar_chart(skills, user_level, required_level):
 
 
 def calculate_test_performance(user_test_id: str, attempt_number: int):
-    """Calculate total correct vs incorrect answers."""
     questions = get_generated_questions(user_test_id, attempt_number)
     answers = get_follow_up_answers_by_user(user_test_id, attempt_number)
 
@@ -90,7 +87,7 @@ def calculate_test_performance(user_test_id: str, attempt_number: int):
         if not user_answer:
             continue
 
-        user_choice = user_answer.strip()[0].upper()  # e.g., "B. text" -> "B"
+        user_choice = user_answer.strip()[0].upper()
         if user_choice == correct_answer.upper():
             correct += 1
 
@@ -99,7 +96,6 @@ def calculate_test_performance(user_test_id: str, attempt_number: int):
 
 
 def generate_bar_chart(data: dict):
-    """Generate bar chart showing how many answers are correct vs incorrect."""
     categories = list(data.keys())
     values = list(data.values())
 
@@ -128,20 +124,14 @@ def generate_bar_chart(data: dict):
 
 
 def compute_and_save_charts_for_all_jobs(user_test_id: str, attempt_number: int):
-    """
-    Compute radar and bar charts for all jobs linked to the user's recommendation.
-    Uses Firestore model functions only.
-    """
-    # retrieve recommendation id from career recommendations
     rec_id = get_recommendation_id_by_user_test_id(user_test_id)
     if not rec_id:
         return {"error": "No career recommendation found for this user test ID."}
 
-    print(f"[ATTEMPT DEBUG] Found recommendation ID: {rec_id}")
+    print(f"[DEBUG] Found recommendation ID: {rec_id}")
 
-    # get all jobs for this recommendation
     recommended_jobs = get_all_jobs(rec_id)
-    print(f"[ATTEMPT DEBUG] Found {len(recommended_jobs)} jobs for this recommendation")
+    print(f"[DEBUG] Found {len(recommended_jobs)} jobs for this recommendation")
 
     if not recommended_jobs:
         return {"error": "No jobs found for this recommendation."}
@@ -167,28 +157,22 @@ def compute_and_save_charts_for_all_jobs(user_test_id: str, attempt_number: int)
             for skill in skills
         ]
 
-        # generate charts
         radar_chart_base64 = generate_radar_chart(skills, user_level, required_level)
         test_performance = calculate_test_performance(user_test_id, attempt_number)
         result_chart = generate_bar_chart(test_performance)
 
-        # prepare charts data to be saved
         charts_data = {
             "radar_chart": radar_chart_base64,
             "result_chart": result_chart,
         }
 
-        # save charts to Firestore
-        save_job_charts(rec_id, str(job["job_index"]), charts_data)
+        save_job_charts(rec_id, job["job_index"], charts_data)
 
         results.append(
             {
                 "rec_id": rec_id,
-                "job_index": str(job["job_index"]),
-                "charts": {
-                    "radar_chart": radar_chart_base64,
-                    "result_chart": result_chart,
-                },
+                "job_index": job["job_index"],
+                "charts": charts_data,
             }
         )
 

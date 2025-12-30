@@ -469,7 +469,7 @@ def match_user_to_job(
             return {"error": "No matching jobs found"}
 
         print(f"Found {len(similar_jobs)} potential job matches")
-        top_matches = []
+        job_matches = []
 
         for i, job_match in enumerate(similar_jobs):
             similarity_score = job_match["score"]
@@ -543,11 +543,11 @@ def match_user_to_job(
                 "required_knowledge": required_knowledge,
             }
 
-            top_matches.append(match_data)
+            job_matches.append(match_data)
 
-        print(f"Returning {len(top_matches)} top matches")
+        print(f"Returning {len(job_matches)} job matches")
 
-        return {"top_matches": top_matches}
+        return {"job_matches": job_matches}
 
     except Exception as e:
         error_msg = f"Failed to query jobs from Pinecone: {str(e)}"
@@ -555,83 +555,83 @@ def match_user_to_job(
         return {"error": error_msg}
 
 
-# -----------------------------
-# Legacy function for local matching (fallback)
-# -----------------------------
-def match_user_to_job_legacy(
-    user_test_id: str,
-    user_embedding: List[float],
-    use_openai_summary: bool = True,
-) -> Dict[str, Any]:
-    """
-    Legacy function using local embeddings if Pinecone fails.
-    Only use this as a fallback.
-    """
-    print("Using LEGACY local matching (Pinecone may not be available)")
+# # -----------------------------
+# # Legacy function for local matching (fallback)
+# # -----------------------------
+# def match_user_to_job_legacy(
+#     user_test_id: str,
+#     user_embedding: List[float],
+#     use_openai_summary: bool = True,
+# ) -> Dict[str, Any]:
+#     """
+#     Legacy function using local embeddings if Pinecone fails.
+#     Only use this as a fallback.
+#     """
+#     print("Using LEGACY local matching (Pinecone may not be available)")
 
-    # check if globals are loaded correctly
-    print(
-        f"DF length: {len(loader.df)}, Job embeddings length: {len(loader.job_embeddings)}"
-    )
+#     # check if globals are loaded correctly
+#     print(
+#         f"DF length: {len(loader.df)}, Job embeddings length: {len(loader.job_embeddings)}"
+#     )
 
-    if loader.df.empty or not loader.job_embeddings:
-        return {"error": "No jobs or embeddings available."}
+#     if loader.df.empty or not loader.job_embeddings:
+#         return {"error": "No jobs or embeddings available."}
 
-    # convert to numpy
-    user_vec = np.array(user_embedding).reshape(1, -1)  # (1, dim)
-    job_matrix = np.array(loader.job_embeddings)  # (num_jobs, dim)
+#     # convert to numpy
+#     user_vec = np.array(user_embedding).reshape(1, -1)  # (1, dim)
+#     job_matrix = np.array(loader.job_embeddings)  # (num_jobs, dim)
 
-    # compute cosine similarity
-    from sklearn.metrics.pairwise import cosine_similarity
+#     # compute cosine similarity
+#     from sklearn.metrics.pairwise import cosine_similarity
 
-    similarities = cosine_similarity(user_vec, job_matrix)[0]  # shape: (num_jobs,)
+#     similarities = cosine_similarity(user_vec, job_matrix)[0]  # shape: (num_jobs,)
 
-    # get indices of top 3 jobs (sorted by similarity score)
-    top_n = min(3, len(similarities))
+#     # get indices of top 3 jobs (sorted by similarity score)
+#     top_n = min(3, len(similarities))
 
-    # get sorted indices
-    sorted_indices = np.argsort(similarities)[::-1]  # highest first
+#     # get sorted indices
+#     sorted_indices = np.argsort(similarities)[::-1]  # highest first
 
-    # deduplicate by job title before slicing
-    seen_titles = set()
-    unique_indices = []
-    for idx in sorted_indices:
-        title = loader.df.iloc[idx].get("Title", "N/A")
-        if title not in seen_titles:
-            seen_titles.add(title)
-            unique_indices.append(idx)
-        if len(unique_indices) >= top_n:
-            break
+#     # deduplicate by job title before slicing
+#     seen_titles = set()
+#     unique_indices = []
+#     for idx in sorted_indices:
+#         title = loader.df.iloc[idx].get("Title", "N/A")
+#         if title not in seen_titles:
+#             seen_titles.add(title)
+#             unique_indices.append(idx)
+#         if len(unique_indices) >= top_n:
+#             break
 
-    top_matches = []
+#     job_matches = []
 
-    for idx in unique_indices:
-        job = loader.df.iloc[idx]
-        similarity_score = float(similarities[idx])
-        similarity_percentage = round(similarity_score * 100, 2)
-        original_job_desc = job.get("Full Job Description", "N/A")
+#     for idx in unique_indices:
+#         job = loader.df.iloc[idx]
+#         similarity_score = float(similarities[idx])
+#         similarity_percentage = round(similarity_score * 100, 2)
+#         original_job_desc = job.get("Full Job Description", "N/A")
 
-        # process with OpenAI if requested
-        job_desc = original_job_desc
-        required_skills = {}
-        required_knowledge = {}
+#         # process with OpenAI if requested
+#         job_desc = original_job_desc
+#         required_skills = {}
+#         required_knowledge = {}
 
-        if use_openai_summary and original_job_desc != "N/A":
-            extraction_result = extract_job_skills_knowledge(original_job_desc)
-            required_skills = extraction_result.get("skills", {})
-            required_knowledge = extraction_result.get("knowledge", {})
+#         if use_openai_summary and original_job_desc != "N/A":
+#             extraction_result = extract_job_skills_knowledge(original_job_desc)
+#             required_skills = extraction_result.get("skills", {})
+#             required_knowledge = extraction_result.get("knowledge", {})
 
-        top_matches.append(
-            {
-                "user_test_id": user_test_id,
-                "job_index": int(idx),
-                "job_title": job.get("Title", "N/A"),
-                "job_description": job_desc,
-                "similarity_score": similarity_score,
-                "similarity_percentage": similarity_percentage,
-                "required_skills": required_skills,
-                "required_knowledge": required_knowledge,
-            }
-        )
+#         job_matches.append(
+#             {
+#                 "user_test_id": user_test_id,
+#                 "job_index": int(idx),
+#                 "job_title": job.get("Title", "N/A"),
+#                 "job_description": job_desc,
+#                 "similarity_score": similarity_score,
+#                 "similarity_percentage": similarity_percentage,
+#                 "required_skills": required_skills,
+#                 "required_knowledge": required_knowledge,
+#             }
+#         )
 
-    return {"top_matches": top_matches}
+#     return {"job_matches": job_matches}

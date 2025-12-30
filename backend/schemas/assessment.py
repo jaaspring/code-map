@@ -18,10 +18,6 @@ class UserResponses(BaseModel):
     careerGoals: Optional[str]
 
 
-class SkillReflectionRequest(BaseModel):
-    user_test_id: str
-
-
 # -----------------------------
 # Follow-up test schemas
 # -----------------------------
@@ -79,4 +75,4 @@ class JobMatch(BaseModel):
 
 class UserProfileMatchResponse(BaseModel):
     profile_text: str
-    top_matches: List[JobMatch]
+    job_matches: List[JobMatch]

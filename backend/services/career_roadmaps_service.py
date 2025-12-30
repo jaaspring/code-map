@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from models.firestore_models import (
     get_recommendation_id_by_user_test_id,
-    get_user_job_skill_matches,
     create_career_roadmap,
     get_career_roadmap,
+    get_user_job_skill_matches,
 )
 
 # -----------------------------
@@ -84,20 +84,37 @@ def generate_roadmap_with_openai(skill_status: dict, knowledge_status: dict) -> 
         print(f"OpenAI API error: {e}")
 
 
+def resolve_job_match_id(user_test_id: str, job_index: str) -> str:
+    """
+    Convert UI job_index (0,1,2...) into persistent job_match_id
+    """
+    job_skill_matches = get_user_job_skill_matches(user_test_id)
+
+    try:
+        index = int(job_index)
+        return job_skill_matches[index]["job_match_id"]
+    except Exception:
+        # fallback: already a job_match_id
+        return job_index
+
+
 def compute_career_roadmaps(user_test_id: str) -> dict:
     """
     Compute Career Roadmaps for all jobs based on the given user_test_id.
     Now uses job_skill_matches collection which already has skill gap analysis.
     """
+    print(f"compute_career_roadmaps CALLED for user: {user_test_id}")
     try:
-        # get all job skill matches for this user
+        # get all job skill matches for this user test ID
         job_skill_matches = get_user_job_skill_matches(user_test_id)
+        print(f"Found {len(job_skill_matches)} job skill matches")
 
         if not job_skill_matches:
-            return {"error": "No job skill matches found for this user."}
+            return {"error": "No job skill matches found for this user test ID."}
 
-        # Get the recommendation document ID for this user_test_id
+        # get the recommendation document ID for this user_test_id
         recommendation_id = get_recommendation_id_by_user_test_id(user_test_id)
+        print(f"Recommendation ID: {recommendation_id}")
 
         if not recommendation_id:
             return {"error": "No recommendation found for this user test ID."}
@@ -105,21 +122,43 @@ def compute_career_roadmaps(user_test_id: str) -> dict:
         # generate roadmap for each job
         generated_roadmaps = {}
 
-        for job_match in job_skill_matches:
+        for index, job_match in enumerate(job_skill_matches):
             job_match_id = job_match.get("job_match_id")
-            job_title = job_match.get("job_title", f"Job_{job_match_id}")
+            job_title = job_match.get("job_title")
             skill_status = job_match.get("skill_status", {})
             knowledge_status = job_match.get("knowledge_status", {})
+
+            print(f"Processing job {index + 1}: {job_title} (ID: {job_match_id})")
+            print(f"Skill status keys: {list(skill_status.keys())}")
+            print(f"Knowledge status keys: {list(knowledge_status.keys())}")
+
+            missing_skills = []
+            for skill, data in skill_status.items():
+                if data.get("status") == "Missing":
+                    missing_skills.append(skill)
+
+            for knowledge, data in knowledge_status.items():
+                if data.get("status") == "Missing":
+                    missing_skills.append(knowledge)
+
+            print(f"Missing skills/knowledge: {missing_skills}")
 
             # generate roadmap content using OpenAI
             roadmap_content = generate_roadmap_with_openai(
                 skill_status, knowledge_status
             )
 
-            # save to Firestore (using job_match_id as job_index)
+            print(f"OpenAI response for {job_match_id}:")
+            print(f"Topics: {list(roadmap_content.get('topics', {}).keys())}")
+            print(
+                f"Total subtopics: {sum(len(v) for v in roadmap_content.get('sub_topics', {}).values())}"
+            )
+
+            # save to Firestore
+            print(f"Writing to Firestore for {job_match_id}")
             create_career_roadmap(
                 user_test_id=user_test_id,
-                job_index=job_match_id,
+                job_match_id=job_match_id,
                 rec_id=recommendation_id,
                 topics=roadmap_content["topics"],
                 sub_topics=roadmap_content["sub_topics"],
@@ -137,21 +176,26 @@ def compute_career_roadmaps(user_test_id: str) -> dict:
 
     except Exception as e:
         print(f"Error computing career roadmaps: {e}")
+        import traceback
+
+        traceback.print_exc()
         return {"error": f"Failed to compute career roadmaps: {str(e)}"}
 
 
 def retrieve_career_roadmap(user_test_id: str, job_index: str) -> dict:
-    """
-    Retrieve the Career Roadmap for a specific job based on user_test_id and job_index.
-    """
     try:
-        roadmap = get_career_roadmap(user_test_id, job_index)
+        job_match_id = resolve_job_match_id(user_test_id, job_index)
+
+        roadmap = get_career_roadmap(user_test_id, job_match_id)
 
         if not roadmap:
             return {"error": f"No career roadmap found for job index: {job_index}"}
 
-        return {"message": "Career roadmap retrieved successfully", "data": roadmap}
+        return roadmap
 
     except Exception as e:
         print(f"Error retrieving career roadmap: {e}")
+        import traceback
+
+        traceback.print_exc()
         return {"error": f"Failed to retrieve career roadmap: {str(e)}"}

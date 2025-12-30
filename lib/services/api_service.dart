@@ -33,7 +33,7 @@ class ApiService {
   static final String baseUrl =
       dotenv.env['BASE_URL'] ?? "http://localhost:8000";
 
-  // submit the initial test and return the generated userTestId (String)
+  // submit the initial test and return the generated userTestId
   static Future<String> submitTest(UserResponses responses) async {
     final url = Uri.parse("$baseUrl/submit-test");
     final response = await _requestWithRetry(() => http.post(
@@ -160,12 +160,10 @@ class ApiService {
   // get user profile and job match
   static Future<UserProfileMatchResponse?> getUserProfileMatch({
     required String userTestId,
-    String? skillReflection,
   }) async {
     final url = Uri.parse("$baseUrl/user-profile-match");
     final body = {
       "user_test_id": userTestId,
-      if (skillReflection != null) "skillReflection": skillReflection,
     };
     print("[DEBUG] Request body: $body");
 
@@ -315,7 +313,7 @@ class ApiService {
   }
 
   // get charts for all jobs
-  static Future<List<Map<String, dynamic>>> getCharts({
+  static Future<List<Map<String, dynamic>>> generateCharts({
     required String userTestId,
     required int attemptNumber,
   }) async {
@@ -407,32 +405,50 @@ class ApiService {
     }
   }
 
-  // generate Career Roadmaps for all jobs
+// generate Career Roadmaps for all jobs
   static Future<Map<String, dynamic>> generateCareerRoadMaps(
       String userTestId) async {
     final url = Uri.parse("$baseUrl/career-roadmap-generation/all/$userTestId");
 
+    print('DEBUG: Generating career roadmaps for: $userTestId');
     final response = await http.post(url);
 
+    print('DEBUG: Generate roadmap status: ${response.statusCode}');
+    print('DEBUG: Generate roadmap body: ${response.body}');
+
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      final decoded = json.decode(response.body);
+      if (decoded.containsKey('error')) {
+        throw Exception("Backend error: ${decoded['error']}");
+      }
+      return decoded;
     } else {
-      throw Exception("Failed to load career roadmap: ${response.statusCode}");
+      throw Exception(
+          "Failed to generate career roadmaps: ${response.statusCode}");
     }
   }
 
-  // retrieve Career Roadmap Report for this user and job index
+// retrieve Career Roadmap Report for this user and job index
   static Future<Map<String, dynamic>> getCareerRoadmap(
       String userTestId, String jobIndex) async {
     final url =
         Uri.parse("$baseUrl/career-roadmap-retrieval/$userTestId/$jobIndex");
 
+    print('DEBUG: Fetching roadmap for: $userTestId, job: $jobIndex');
     final response = await http.get(url);
 
+    print('DEBUG: Get roadmap status: ${response.statusCode}');
+    print('DEBUG: Get roadmap body: ${response.body}');
+
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      final decoded = json.decode(response.body);
+      // Check for error from backend
+      if (decoded.containsKey('error')) {
+        throw Exception("Backend error: ${decoded['error']}");
+      }
+      return decoded;
     } else {
-      throw Exception("Failed to load report: ${response.statusCode}");
+      throw Exception("Failed to load roadmap: ${response.statusCode}");
     }
   }
 

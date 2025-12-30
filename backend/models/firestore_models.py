@@ -158,23 +158,20 @@ def get_all_jobs(rec_id: str = None):
     return jobs
 
 
-def get_job_by_index(job_index: str):
-    """
-    Fetch a single job match across all career recommendations by its job_index.
-    """
-    recs = db.collection("career_recommendations").stream()
-    for rec in recs:
-        collection = (
-            db.collection("career_recommendations")
-            .document(rec.id)
-            .collection("job_matches")
-        )
-        job_doc = collection.document(job_index).get()
-        if job_doc.exists:
-            job_data = job_doc.to_dict()
-            job_data["job_index"] = job_index
-            return job_data
-    return None
+def get_job_by_index(rec_id: str, job_match_id: str):
+    doc = (
+        db.collection("career_recommendations")
+        .document(rec_id)
+        .collection("job_matches")
+        .document(job_match_id)
+        .get()
+    )
+
+    if not doc.exists:
+        print(f"[ERROR] Job match {job_match_id} not found under rec {rec_id}")
+        return None
+
+    return doc.to_dict()
 
 
 def get_jobs_for_recommendation(rec_id: str):
@@ -321,8 +318,9 @@ def get_job_match_doc(user_test_id: str, job_index: str):
 
 
 # charts
-def save_job_charts(rec_id: str, job_index: str, charts_data: dict):
-    """Save chart data for a specific job in the recommendation."""
+def save_job_charts(
+    rec_id: str, job_index: str, charts_data: dict, attempt_number: int = 1
+):
     job_ref = (
         db.collection("career_recommendations")
         .document(rec_id)
@@ -330,25 +328,43 @@ def save_job_charts(rec_id: str, job_index: str, charts_data: dict):
         .document(job_index)
     )
 
-    # update the document with chart data
-    job_ref.update({"charts": charts_data})
-
+    job_doc = job_ref.get()
+    if job_doc.exists:
+        existing = job_doc.to_dict().get("charts", {})
+        existing[str(attempt_number)] = charts_data
+        job_ref.update({"charts": existing})
+    else:
+        job_ref.set({"charts": {str(attempt_number): charts_data}})
     return True
 
 
-def get_job_charts(rec_id: str, job_index: str):
-    """Retrieve chart data for a specific job."""
+def get_job_charts(rec_id: str, job_match_id: str, attempt_number: int):
     job_ref = (
         db.collection("career_recommendations")
         .document(rec_id)
         .collection("job_matches")
-        .document(job_index)
+        .document(job_match_id)
     )
 
     job_data = job_ref.get()
     if job_data.exists:
-        return job_data.to_dict().get("charts", {})
+        all_charts = job_data.to_dict().get("charts", {})
+        return all_charts.get(str(attempt_number), {})  # charts keyed by attempt
     return {}
+
+
+# attempts
+def get_user_attempts(user_test_id: str) -> list[dict]:
+    """
+    Fetch all assessment attempts for a user_test_id from the 'users' collection.
+    Returns a list of dicts, each containing attemptNumber, completedAt, status, testId, etc.
+    """
+    user_ref = db.collection("users").document(user_test_id)
+    user_doc = user_ref.get()
+    if user_doc.exists:
+        data = user_doc.to_dict()
+        return data.get("assessmentAttempts", [])
+    return []
 
 
 # -----------------------
@@ -380,72 +396,96 @@ def get_user_skills_knowledge(user_id: str) -> dict:
 # -----------------------
 # UserJobSkillMatch
 # -----------------------
-def set_user_job_skill_match(
-    user_id: str,
+def set_user_job_match(
+    rec_id: str,
     job_match_id: str,
     skill_status: dict,
     knowledge_status: dict,
-    job_title: str = None,
 ):
-    """
-    Save skill/knowledge gap analysis for a specific user and job.
-    Synchronous version for compatibility with skill_gap_analysis_service.
-    """
-    match_ref = (
-        db.collection("user_tests")
-        .document(user_id)
-        .collection("job_skill_matches")
-        .document(job_match_id)
+    print(f"[DEBUG] set_user_job_match → rec_id={rec_id}, job_match_id={job_match_id}")
+
+    job_ref = (
+        db.collection("career_recommendations")
+        .document(rec_id)
+        .collection("job_matches")
+        .document(str(job_match_id))
     )
-    match_ref.set(
+
+    job_ref.update(
         {
-            "job_match_id": job_match_id,
             "skill_status": skill_status,
             "knowledge_status": knowledge_status,
-            "job_title": job_title,
         }
     )
-    print(f"[INFO] Saved job_skill_match: user={user_id}, job={job_match_id}")
 
 
-def get_user_job_skill_match(user_id: str, job_match_id: str) -> dict:
-    doc = (
-        db.collection("user_tests")
-        .document(user_id)
-        .collection("job_skill_matches")
-        .document(job_match_id)
-        .get()
-    )
-    return doc.to_dict() if doc.exists else None
+def get_user_job_skill_matches(user_test_id: str) -> list[dict]:
+    results = []
+    try:
+        # find the document in career_recommendations that has this user_test_id
+        career_recs_ref = db.collection("career_recommendations")
 
+        # query for documents where user_test_id field equals our parameter
+        query = career_recs_ref.where("user_test_id", "==", user_test_id)
+        matching_docs = query.stream()
 
-def get_user_job_skill_matches(user_id: str) -> list[dict]:
-    return [
-        doc.to_dict()
-        for doc in db.collection("user_tests")
-        .document(user_id)
-        .collection("job_skill_matches")
-        .stream()
-    ]
+        doc_ids = []
+        for doc in matching_docs:
+            doc_ids.append(doc.id)
+            print(f"Found career_recommendations document: {doc.id}")
+
+        if not doc_ids:
+            print(f"No career_recommendations found with user_test_id: {user_test_id}")
+            return []
+
+        # use the first matching document (should only be one)
+        parent_doc_id = doc_ids[0]
+
+        # get the nested job_matches collection
+        job_matches_ref = (
+            db.collection("career_recommendations")
+            .document(parent_doc_id)
+            .collection("job_matches")
+            .stream()
+        )
+
+        for doc in job_matches_ref:
+            data = doc.to_dict()
+            filtered = {
+                "job_match_id": doc.id,
+                "job_title": data.get("job_title", "N/A"),
+                "skill_status": data.get("skill_status", {}),
+                "knowledge_status": data.get("knowledge_status", {}),
+            }
+            results.append(filtered)
+
+        print(f"Found {len(results)} job matches for user_test_id: {user_test_id}")
+        return results
+
+    except Exception as e:
+        print(f"Error in get_user_job_skill_matches: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return []
 
 
 # -----------------------
 # CareerRoadmap
 # -----------------------
 def create_career_roadmap(
-    user_test_id: str, job_index: str, rec_id: str, topics: dict, sub_topics: dict
+    user_test_id: str, job_match_id: str, rec_id: str, topics: dict, sub_topics: dict
 ) -> str:
     """
     Create a career roadmap for a user and specific job.
     Document ID structure: {user_test_id}_{job_index}
-    This allows easy retrieval by user + job combination.
     """
-    roadmap_id = f"{user_test_id}_{job_index}"
+    roadmap_id = f"{user_test_id}_{job_match_id}"
     roadmap_ref = db.collection("career_roadmap").document(roadmap_id)
     roadmap_ref.set(
         {
             "user_test_id": user_test_id,  # reference to user_tests
-            "job_index": job_index,
+            "job_match_id": job_match_id,
             "rec_id": rec_id,  # reference to career_recommendations
             "topics": topics,
             "sub_topics": sub_topics,
@@ -454,10 +494,10 @@ def create_career_roadmap(
     return roadmap_ref.id
 
 
-def get_career_roadmap(user_test_id: str, job_index: str) -> dict:
+def get_career_roadmap(user_test_id: str, job_match_id: str) -> dict:
     """
     Fetch a specific user's career roadmap for a job.
     """
-    roadmap_id = f"{user_test_id}_{job_index}"
+    roadmap_id = f"{user_test_id}_{job_match_id}"
     doc = db.collection("career_roadmap").document(roadmap_id).get()
     return doc.to_dict() if doc.exists else None

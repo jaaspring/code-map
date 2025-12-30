@@ -26,7 +26,7 @@ if not OPENAI_API_KEY:
 # Initialize LLM
 # -----------------------------
 llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
-oss_llm = GPTOSSWrapper(endpoint_url="http://localhost:8000/", temperature=0.0)
+oss_llm = GPTOSSWrapper(endpoint_url="http://localhost:5000/validate", temperature=0.0)
 
 # -----------------------------
 # System Message
@@ -214,14 +214,18 @@ def validate_question_structure(questions):
 
 def run_oss_validation(mcqs, chain):
     """Run OSS validation safely and fallback to original if OSS fails"""
+    # flags hallucination/suggests corrections
+    # this line sends the MCQs to the OSS agent for validation.
+    # OSS checks for inconsistencies, hallucinations, or errors in options/answers
     try:
-        # flags hallucination/suggests corrections
-        # this line sends the MCQs to the OSS agent for validation.
-        # OSS checks for inconsistencies, hallucinations, or errors in options/answers
-        response = chain.run({"mcqs": json.dumps(mcqs)})
+        # format the request properly for the server
+        mcqs_json = json.dumps(mcqs)
+        prompt_text = f"Validate these MCQs: {mcqs_json}"
+
+        # send properly formatted request
+        response = chain.run({"mcqs": prompt_text})
         validated = extract_json_from_response(response)
 
-        # if OSS returns valid non-empty list, use it
         if isinstance(validated, list) and validated:
             return validated
         print(
