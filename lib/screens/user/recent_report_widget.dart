@@ -188,106 +188,145 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF2F8D46),
+          width: 2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: const Color(0xFF2F8D46).withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // header with job dropdown toggle
+          // FIXED: Header Row with proper constraints
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // left side - icon and title
-              Expanded(
+              // Left side - Best Match badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2F8D46),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.assessment,
-                        color: Color(0xFF2F8D46),
-                        size: 24,
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Recent Career Recommendations',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    const SizedBox(width: 6),
+                    Text(
+                      'Best Match',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: 'RobotoMono',
                       ),
                     ),
                   ],
                 ),
               ),
 
-              // right side - dropdown button (only show if we have multiple jobs)
-              if (_availableJobs.length > 1) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () =>
-                      setState(() => _showJobDropdown = !_showJobDropdown),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2F8D46).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${_availableJobs.length} jobs',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF2F8D46),
-                            fontWeight: FontWeight.w500,
-                          ),
+              // Middle - similarity percentage with proper spacing
+              if (_selectedJob != null)
+                Expanded(
+                  child: Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF252525),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${_selectedJob!['similarity_percentage']}% match',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontFamily: 'RobotoMono',
+                          letterSpacing: 0.5,
                         ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          _showJobDropdown
-                              ? Icons.expand_less
-                              : Icons.expand_more,
-                          size: 16,
-                          color: const Color(0xFF2F8D46),
-                        ),
-                      ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ),
-              ],
+
+              // Right side - dropdown button (only show if we have multiple jobs)
+              if (_availableJobs.length > 1)
+                Container(
+                  constraints: BoxConstraints(maxWidth: 120),
+                  child: GestureDetector(
+                    onTap: () =>
+                        setState(() => _showJobDropdown = !_showJobDropdown),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '1 of ${_availableJobs.length} Jobs',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Poppins',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            _showJobDropdown
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            size: 18,
+                            color: Colors.black,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
 
-          // job dropdown
+          // Job dropdown
           if (_showJobDropdown && _availableJobs.length > 1) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: const Color(0xFF2A2A2A),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: const Color(0xFF3A3A3A)),
               ),
               child: Column(
                 children: _availableJobs.asMap().entries.map((entry) {
@@ -306,13 +345,14 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                       padding: const EdgeInsets.all(10),
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
-                        color:
-                            isSelected ? const Color(0xFFE8F5E9) : Colors.white,
+                        color: isSelected
+                            ? const Color(0xFF2F8D46).withOpacity(0.2)
+                            : const Color(0xFF222222),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isSelected
-                              ? const Color(0xFF2F8D46).withOpacity(0.3)
-                              : Colors.grey[300]!,
+                              ? const Color(0xFF2F8D46)
+                              : const Color(0xFF3A3A3A),
                         ),
                       ),
                       child: Row(
@@ -348,9 +388,8 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                                     fontWeight: isSelected
                                         ? FontWeight.w600
                                         : FontWeight.w500,
-                                    color: isSelected
-                                        ? const Color(0xFF1B5E20)
-                                        : Colors.black87,
+                                    color: Colors.white,
+                                    fontFamily: 'Poppins',
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -382,8 +421,8 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             const SizedBox(height: 12),
           ],
 
-          // main content
-          const SizedBox(height: 16),
+          // Main content
+          const SizedBox(height: 20),
 
           if (_isLoading)
             Center(child: _buildLoadingState())
@@ -399,16 +438,19 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
   }
 
   Widget _buildLoadingState() {
-    return const Center(
+    return Center(
       child: Column(
         children: [
-          CircularProgressIndicator(),
+          const CircularProgressIndicator(
+            color: Color(0xFF2F8D46),
+          ),
           SizedBox(height: 8),
           Text(
             'Loading your career recommendations...',
             style: TextStyle(
-              color: Colors.grey,
+              color: Colors.grey[400],
               fontSize: 12,
+              fontFamily: 'Poppins',
             ),
           ),
         ],
@@ -423,16 +465,17 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
       children: [
         Icon(
           Icons.work_outline,
-          color: Colors.grey[400],
+          color: Colors.grey[600],
           size: 48,
         ),
         const SizedBox(height: 12),
         Text(
           _errorMessage!,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.grey,
+          style: TextStyle(
+            color: Colors.grey[400],
             fontSize: 12,
+            fontFamily: 'Poppins',
           ),
         ),
       ],
@@ -447,24 +490,26 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
         children: [
           Icon(
             Icons.work_outline,
-            color: Colors.grey[400],
+            color: Colors.grey[600],
             size: 48,
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'No career recommendations yet',
             style: TextStyle(
-              color: Colors.grey,
+              color: Colors.grey[400],
               fontSize: 14,
+              fontFamily: 'Poppins',
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Complete an assessment to see your matches',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.grey,
+              color: Colors.grey[500],
               fontSize: 12,
+              fontFamily: 'Poppins',
             ),
           ),
         ],
@@ -483,331 +528,219 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                 '0') ??
         0;
 
-    // Get current job rank (1-based)
-    final currentRank = _availableJobs.indexWhere(
-            (job) => job['job_index'] == _selectedJob!['job_index']) +
-        1;
-
-    // Check if this is the best match
-    final isBestMatch = currentRank == 1;
-
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Current job indicator with ranking
-        if (_availableJobs.length > 1)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: isBestMatch
-                  ? const Color(0xFFFFF3CD) // Gold-ish for best match
-                  : const Color(0xFF2F8D46).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Ranking medal
-                if (isBestMatch)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 6),
-                    child: Icon(
-                      Icons.workspace_premium,
-                      color: Color(0xFFD4AF37),
-                      size: 16,
-                    ),
-                  ),
-
-                Text(
-                  isBestMatch
-                      ? 'Best Match #$currentRank'
-                      : 'Match #$currentRank of ${_availableJobs.length}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isBestMatch
-                        ? const Color(0xFF856404)
-                        : const Color(0xFF2F8D46),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-
-                // show similarity percentage
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _getSimilarityColor(similarity),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${similarity.toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+        // Job title - Modern design
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            jobTitle,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              fontFamily: 'Poppins',
+              height: 1.2,
             ),
           ),
+        ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
 
-        // report content
-        GestureDetector(
-          onTap: () {
-            if (_userTestId != null && _selectedJob != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ReportResultScreen(
-                    userTestId: _userTestId!,
-                    jobIndex: _selectedJob!['job_index'],
-                    atemptNumber: _attemptNumber, // pass attempt number
-                  ),
-                ),
-              );
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isBestMatch
-                  ? const Color(0xFFFFF9E6)
-                  : const Color(0xFFF8FDF9),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isBestMatch
-                    ? const Color(0xFFD4AF37).withOpacity(0.3)
-                    : const Color(0xFF2F8D46).withOpacity(0.2),
-                width: 1.5,
-              ),
+        // Job description with modern styling
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: Text(
+            jobDescription,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[300],
+              height: 1.6,
+              fontFamily: 'Poppins',
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title with ranking
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (isBestMatch)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8, top: 2),
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD4AF37),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              '1',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            jobTitle,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isBestMatch
-                                  ? const Color(0xFF856404)
-                                  : const Color(0xFF1B5E20),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          // Similarity percentage bar
-                          Row(
-                            children: [
-                              Expanded(
-                                child: LinearProgressIndicator(
-                                  value: similarity / 100,
-                                  backgroundColor: Colors.grey[200],
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      _getSimilarityColor(similarity)),
-                                  borderRadius: BorderRadius.circular(10),
-                                  minHeight: 6,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${similarity.toStringAsFixed(1)}%',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: _getSimilarityColor(similarity),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                Text(
-                  _truncateText(jobDescription, maxLength: 120),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                if (_reportData!['job']?['required_skills'] != null)
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.star, size: 12, color: Colors.blue[700]),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${(_reportData!['job']['required_skills'] as Map).length} skills',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Add ranking badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color:
-                              _getSimilarityColor(similarity).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _getSimilarityColor(similarity),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              isBestMatch ? '🏆' : _getRankingIcon(currentRank),
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isBestMatch ? 'Best Match' : 'Rank #$currentRank',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: _getSimilarityColor(similarity),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
 
         const SizedBox(height: 16),
 
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (_userTestId != null && _selectedJob != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ReportResultScreen(
-                          userTestId: _userTestId!,
-                          jobIndex: _selectedJob!['job_index'],
-                          atemptNumber: _attemptNumber,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isBestMatch
-                      ? const Color(0xFFD4AF37) // Gold for best match button
-                      : const Color(0xFF2F8D46),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  isBestMatch ? 'View Best Match Report' : 'View Full Report',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-            if (_availableJobs.length > 1) ...[
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final currentIndex = _availableJobs.indexWhere((job) =>
-                        job['job_index'] == _selectedJob!['job_index']);
-                    final nextIndex =
-                        (currentIndex + 1) % _availableJobs.length;
-                    _onJobSelected(_availableJobs[nextIndex]);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isBestMatch
-                        ? const Color(0xFFFFF3CD)
-                        : const Color(0xFFE8F5E9),
-                    padding: const EdgeInsets.all(12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+        // Skills badge - Modern design
+        if (_reportData!['job']?['required_skills'] != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2F8D46).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF2F8D46),
+                      width: 1,
                     ),
                   ),
-                  child: Icon(
-                    Icons.navigate_next,
-                    color: isBestMatch
-                        ? const Color(0xFFD4AF37)
-                        : const Color(0xFF2F8D46),
-                    size: 20,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.bolt,
+                        size: 14,
+                        color: Color(0xFF2F8D46),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${(_reportData!['job']['required_skills'] as Map).length} skills match',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Modern buttons row
+        Container(
+          height: 48,
+          child: Row(
+            children: [
+              // Previous button (only if multiple jobs)
+              if (_availableJobs.length > 1)
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF2F8D46),
+                      width: 2,
+                    ),
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      final currentIndex = _availableJobs.indexWhere((job) =>
+                          job['job_index'] == _selectedJob!['job_index']);
+                      final prevIndex =
+                          (currentIndex - 1 + _availableJobs.length) %
+                              _availableJobs.length;
+                      _onJobSelected(_availableJobs[prevIndex]);
+                    },
+                    icon: const Icon(
+                      Icons.chevron_left,
+                      color: Color(0xFF2F8D46),
+                      size: 24,
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+
+              if (_availableJobs.length > 1) const SizedBox(width: 12),
+
+              // View report button
+              Expanded(
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF2F8D46),
+                        Color(0xFF4CAF50),
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2F8D46).withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_userTestId != null && _selectedJob != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CareerAnalysisReport(
+                              userTestId: _userTestId!,
+                              jobIndex: _selectedJob!['job_index'],
+                              attemptNumber: _attemptNumber,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'View Report',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Poppins',
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
+
+              if (_availableJobs.length > 1) const SizedBox(width: 12),
+
+              // Next button (only if multiple jobs)
+              if (_availableJobs.length > 1)
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF2F8D46),
+                      width: 2,
+                    ),
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      final currentIndex = _availableJobs.indexWhere((job) =>
+                          job['job_index'] == _selectedJob!['job_index']);
+                      final nextIndex =
+                          (currentIndex + 1) % _availableJobs.length;
+                      _onJobSelected(_availableJobs[nextIndex]);
+                    },
+                    icon: Icon(
+                      Icons.chevron_right,
+                      color: const Color(0xFF2F8D46),
+                      size: 24,
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
             ],
-          ],
+          ),
         ),
       ],
     );
