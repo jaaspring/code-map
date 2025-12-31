@@ -172,7 +172,6 @@ class _FollowUpTestState extends State<FollowUpTest> {
             ),
           ),
 
-          // IDE-style code block - EXACTLY like your first image
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -183,7 +182,6 @@ class _FollowUpTestState extends State<FollowUpTest> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Code header - Gray header with language name, NO extra badges
                   // Tab bar background
                   Container(
                     width: double.infinity,
@@ -217,7 +215,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                language?.toUpperCase() ?? 'CODE',
+                                language ?? 'Code',
                                 style: const TextStyle(
                                   fontFamily: 'GoogleSansCode',
                                   color: Colors.white,
@@ -239,7 +237,6 @@ class _FollowUpTestState extends State<FollowUpTest> {
                     ),
                   ),
 
-                // Code content with line numbers
                 Container(
                   padding: const EdgeInsets.only(top: 0, bottom: 0),
                   child: Row(
@@ -402,7 +399,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
                           ),
                           const SizedBox(width: 8),
                           const Text(
-                            'CODE',
+                            'Code',
                             style: TextStyle(
                               fontFamily: 'GoogleSansCode',
                               color: Colors.white,
@@ -611,70 +608,57 @@ class _FollowUpTestState extends State<FollowUpTest> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (difficulty.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color:
-                              _getDifficultyColor(difficulty).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
+                      if (difficulty.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
                             color: _getDifficultyColor(difficulty),
-                            width: 1,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            difficulty,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          difficulty.toUpperCase(),
-                          style: TextStyle(
-                            color: _getDifficultyColor(difficulty),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    if (category.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2196F3).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
+                      if (category.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
                             color: const Color(0xFF2196F3),
-                            width: 1,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            category,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          category,
-                          style: const TextStyle(
-                            color: Color(0xFF2196F3),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    if (language != null && language.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF9800).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
+                      if (language != null && language.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
                             color: const Color(0xFFFF9800),
-                            width: 1,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            language,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        child: Text(
-                          language,
-                          style: const TextStyle(
-                            color: Color(0xFFFF9800),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
                 const SizedBox(height: 16),
