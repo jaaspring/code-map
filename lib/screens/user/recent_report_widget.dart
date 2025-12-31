@@ -49,6 +49,32 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
 
         _userTestId = data['userTestId'];
 
+        // Extract the latest attempt number
+        if (data.containsKey('assessmentAttempts')) {
+          final attempts = data['assessmentAttempts'] as List<dynamic>;
+          if (attempts.isNotEmpty) {
+            // attempts are usually appended, so the last one is the latest? 
+            // Better to match the testId or sort.
+            // But usually userTestId corresponds to the LATEST test.
+            
+            // Let's find the attempt matching _userTestId
+            final currentAttempt = attempts.firstWhere(
+              (a) => a['testId'] == _userTestId,
+              orElse: () => null,
+            );
+            
+            if (currentAttempt != null) {
+              _attemptNumber = currentAttempt['attemptNumber'];
+              print("DEBUG: Found attempt number in Firestore: $_attemptNumber");
+            } else if (attempts.isNotEmpty) {
+               // Fallback to the latest one if ID not found directly (rare)
+               final latest = attempts.last;
+               _attemptNumber = latest['attemptNumber'];
+               print("DEBUG: Using latest attempt number: $_attemptNumber");
+            }
+          }
+        }
+
         if (_userTestId != null && _userTestId!.isNotEmpty) {
           await _loadAllJobs();
         } else {
@@ -101,6 +127,15 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                   response['data']['job']['similarity_percentage'] ?? '',
               'report_data': response['data'],
             });
+
+            // Try to set attempt number from response if available
+            if (_attemptNumber == null && response['data'] != null) {
+              if (response['data']['attempt_number'] != null) {
+                _attemptNumber =
+                    int.tryParse(response['data']['attempt_number'].toString());
+                print("DEBUG: Extracted attempt number: $_attemptNumber");
+              }
+            }
           }
         } catch (e) {
           print('Error loading job $jobIndex: $e');
