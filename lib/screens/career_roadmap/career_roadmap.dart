@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../utils/retake_service.dart';
 import '../user/home_screen.dart';
+import '../user/assessment_screen.dart';
 
 class CareerRoadmap extends StatefulWidget {
   final String userTestId;
@@ -41,11 +42,15 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
   List<dynamic> _userAttempts = [];
 
   @override
+
+
+
+  @override
   void initState() {
     super.initState();
     currentJobIndex = widget.jobIndex;
-    _loadData();
     _checkRetakeEligibility();
+    _loadData();
   }
 
   Future<void> _checkRetakeEligibility() async {
@@ -53,12 +58,12 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
     if (user == null) return;
 
     _userAttempts = await RetakeService.getUserAttempts(user.uid);
-    final canRetake = RetakeService.canRetakeTest(_userAttempts);
     final daysUntil = RetakeService.daysUntilRetake(_userAttempts);
 
+    if (!mounted) return;
     setState(() {
-      _canRetake = canRetake;
-      _daysUntilRetake = daysUntil;
+      _daysUntilRetake = 0;
+      _canRetake = true;
     });
   }
 
@@ -67,9 +72,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _userAttempts.length >= 10
-                ? 'Maximum 10 attempts reached'
-                : 'You can retake in $_daysUntilRetake days',
+            'You can retake in $_daysUntilRetake days',
           ),
           duration: const Duration(seconds: 3),
         ),
@@ -83,9 +86,8 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
-        backgroundColor: cardBackground,
+        backgroundColor: const Color(0xFF1E1E1E),
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black.withOpacity(0.5),
         elevation: 8,
@@ -111,7 +113,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: textPrimary,
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -133,9 +135,9 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
             Text(
               'You\'re about to start a new assessment. Are you sure you want to proceed?',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: textSecondary,
+                color: Colors.grey[400],
                 height: 1.5,
               ),
             ),
@@ -143,24 +145,24 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: backgroundColor,
+                color: Colors.white.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
                     size: 18,
-                    color: geekGreen,
+                    color: Colors.blue[400],
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Don\'t worry, your previous results will be saved! :D',
                       style: TextStyle(
                         fontSize: 12,
-                        color: textSecondary,
+                        color: Colors.grey[400],
                       ),
                     ),
                   ),
@@ -178,8 +180,8 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: textSecondary,
-                      side: BorderSide(color: Colors.grey[800]!),
+                      foregroundColor: Colors.grey[400],
+                      side: BorderSide(color: Colors.grey[600]!),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -221,6 +223,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
 
     if (confirm != true) return;
 
+    if (!mounted) return;
     // navigate to the start of assessment
     Navigator.pushAndRemoveUntil(
       context,
@@ -230,6 +233,8 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       (route) => false, // clear all routes
     );
   }
+
+
 
   Future<void> _loadData() async {
     try {
@@ -1226,7 +1231,9 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: geekGreen,
                     side: BorderSide(
-                      color: _canRetake ? geekGreen : Colors.grey[800]!,
+                      color: _canRetake
+                          ? geekGreen
+                          : Colors.grey[800]!,
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -1236,14 +1243,11 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                   child: Text(
                     _canRetake
                         ? "Retake Test"
-                        : _userAttempts.length >= 10
-                            ? "Max Attempts"
-                            : "Wait $_daysUntilRetake days",
+                        : "Available in $_daysUntilRetake days",
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
