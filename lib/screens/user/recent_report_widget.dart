@@ -49,15 +49,9 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
 
         _userTestId = data['userTestId'];
 
-        // Extract the latest attempt number
         if (data.containsKey('assessmentAttempts')) {
           final attempts = data['assessmentAttempts'] as List<dynamic>;
           if (attempts.isNotEmpty) {
-            // attempts are usually appended, so the last one is the latest? 
-            // Better to match the testId or sort.
-            // But usually userTestId corresponds to the LATEST test.
-            
-            // Let's find the attempt matching _userTestId
             final currentAttempt = attempts.firstWhere(
               (a) => a['testId'] == _userTestId,
               orElse: () => null,
@@ -67,7 +61,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
               _attemptNumber = currentAttempt['attemptNumber'];
               print("DEBUG: Found attempt number in Firestore: $_attemptNumber");
             } else if (attempts.isNotEmpty) {
-               // Fallback to the latest one if ID not found directly (rare)
                final latest = attempts.last;
                _attemptNumber = latest['attemptNumber'];
                print("DEBUG: Using latest attempt number: $_attemptNumber");
@@ -98,51 +91,60 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
     }
   }
 
+
   Future<void> _loadAllJobs() async {
     if (_userTestId == null) return;
 
     try {
-      print("=== LOADING JOBS DEBUG ===");
-      print("UserTestId: $_userTestId");
-      print("Attempt: $_attemptNumber");
+      print("=== LOADING JOBS OPTIMIZED ===");
+      
+      // Fetch all recommendations in one go (lightweight)
+      final response = await ApiService.getAllRecommendedJobs(_userTestId!);
+      
+      if (response['data'] is List) {
+        final jobsList = response['data'] as List;
+        
+        _availableJobs.clear();
+        for (var job in jobsList) {
+           _availableJobs.add({
+             'job_index': job['job_index'].toString(),
+             'job_title': job['job_title'] ?? 'Unknown Job',
+             'job_description': job['job_description'] ?? '',
+             'similarity_percentage': job['similarity_percentage']?.toString() ?? '0',
+             'required_skills': job['required_skills'] ?? {},
+             'report_data': null, 
+           });
+        }
 
-      for (int jobIndex = 0; jobIndex < 3; jobIndex++) {
-        try {
-          final response = await ApiService.generateReport(
-              _userTestId!, jobIndex.toString());
-
-          print("\nJob $jobIndex Response:");
-          print("Job Title: ${response['data']?['job']?['job_title']}");
-          print(
-              "Job Desc: ${response['data']?['job']?['job_description']?.substring(0, 50)}...");
-
-          if (response['data'] != null && response['data']['job'] != null) {
-            _availableJobs.add({
-              'job_index': jobIndex.toString(),
-              'job_title':
-                  response['data']['job']['job_title'] ?? 'Job ${jobIndex + 1}',
-              'job_description':
-                  response['data']['job']['job_description'] ?? '',
-              'similarity_percentage':
-                  response['data']['job']['similarity_percentage'] ?? '',
-              'report_data': response['data'],
+        // Sort
+        _sortJobs();
+        
+        print("\n=== LOADED ${_availableJobs.length} JOBS FAST ===");
+        
+        if (_availableJobs.isNotEmpty) {
+          _selectBestJob();
+          setState(() {
+            _isLoading = false;
+          });
+        } else {
+             setState(() {
+              _errorMessage = 'No job recommendations found';
+              _isLoading = false;
             });
-
-            // Try to set attempt number from response if available
-            if (_attemptNumber == null && response['data'] != null) {
-              if (response['data']['attempt_number'] != null) {
-                _attemptNumber =
-                    int.tryParse(response['data']['attempt_number'].toString());
-                print("DEBUG: Extracted attempt number: $_attemptNumber");
-              }
-            }
-          }
-        } catch (e) {
-          print('Error loading job $jobIndex: $e');
         }
       }
+    } catch (e) {
+      print('Error loading jobs fast: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading recommendations: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
-      // sort jobs by similarity percentage (highest first)
+  void _sortJobs() {
       _availableJobs.sort((a, b) {
         final aPercent =
             double.tryParse(a['similarity_percentage']?.toString() ?? '0') ?? 0;
@@ -150,40 +152,17 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             double.tryParse(b['similarity_percentage']?.toString() ?? '0') ?? 0;
         return bPercent.compareTo(aPercent);
       });
+  }
 
+  void _selectBestJob() {
       if (_availableJobs.isNotEmpty) {
-        _highestSimilarityJobIndex = _availableJobs.first['job_index'];
-        print("Highest similarity job index: $_highestSimilarityJobIndex");
+        _sortJobs();
+        if (_selectedJob == null) {
+            _selectedJob = _availableJobs.first;
+            _reportData = _selectedJob!['report_data'];
+            _highestSimilarityJobIndex = _selectedJob!['job_index'];
+        }
       }
-
-      print("\n=== LOADED ${_availableJobs.length} JOBS ===");
-      for (var i = 0; i < _availableJobs.length; i++) {
-        print(
-            "Job $i: ${_availableJobs[i]['job_title']} - ${_availableJobs[i]['similarity_percentage']}%");
-      }
-
-      if (_availableJobs.isNotEmpty) {
-        _selectedJob = _availableJobs.first;
-        _reportData = _selectedJob!['report_data'];
-
-        print("\nSELECTED JOB: ${_selectedJob!['job_title']}");
-
-        setState(() {
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = 'No job recommendations found';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error loading jobs: $e');
-      setState(() {
-        _errorMessage = 'Error loading job recommendations: $e';
-        _isLoading = false;
-      });
-    }
   }
 
   void _onJobSelected(Map<String, dynamic> job) {
@@ -223,14 +202,13 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
           if (_showJobDropdown && _availableJobs.length > 1)
             _buildDropdownSection(),
 
-          // MAIN CONTENT SECTION
           const SizedBox(height: 20),
 
           if (_isLoading)
             _buildLoadingState()
           else if (_errorMessage != null)
             _buildErrorState()
-          else if (_reportData != null)
+          else if (_selectedJob != null)
             _buildReportContent()
           else
             _buildNoReportState(),
@@ -263,7 +241,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                         Flexible(child: _buildSimilarityBadge(_selectedJob!)),
                       ],
                     ),
-                  // Additional header content can be added here
                 ],
               ),
             ),
@@ -272,7 +249,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                 padding: const EdgeInsets.only(left: 8),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    // allow it to shrink on narrow screens
                     maxWidth: isCompact ? 120 : constraints.maxWidth * 0.45,
                   ),
                   child: _buildDropdownButton(isCompact),
@@ -514,7 +490,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                               'Rank #${index + 1}',
                               style: const TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFF6B7F6B), // Muted sage green
+                                color: Color(0xFF6B7F6B),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -572,7 +548,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             ),
           ),
           SizedBox(height: 8),
-          // Subtext
           Text(
             'Complete an assessment to see your matches! :D',
             textAlign: TextAlign.center,
@@ -642,13 +617,11 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
 
   Widget _buildReportContent() {
     final jobTitle =
-        _reportData!['job']?['job_title'] ?? 'Job Title Not Available';
-    final jobDescription = _reportData!['job']?['job_description'] ??
+        _selectedJob?['job_title'] ?? 'Job Title Not Available';
+    final jobDescription = _selectedJob?['job_description'] ??
         'Job description not available';
     final similarity = double.tryParse(
-            _selectedJob?['similarity_percentage']?.toString() ??
-                _reportData!['job']?['similarity_percentage']?.toString() ??
-                '0') ??
+            _selectedJob?['similarity_percentage']?.toString() ?? '0') ??
         0;
 
     return Column(
@@ -684,7 +657,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
           ),
         ),
 
-        if (_reportData!['job']?['required_skills'] != null)
+        if (_selectedJob?['required_skills'] != null)
           Container(
             margin: const EdgeInsets.only(bottom: 24),
             child: Wrap(
@@ -707,7 +680,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
                     children: [
                       const SizedBox(width: 6),
                       Text(
-                        '${(_reportData!['job']['required_skills'] as Map).length} skills match',
+                        '${(_selectedJob!['required_skills'] as Map).length} skills match',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.white,
@@ -720,7 +693,6 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             ),
           ),
 
-        // ACTION BUTTONS
         _buildActionButtons(),
       ],
     );
