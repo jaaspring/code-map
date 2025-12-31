@@ -14,11 +14,12 @@ class ReportHistoryScreen extends StatefulWidget {
 
 class _ReportHistoryScreenState extends State<ReportHistoryScreen>
     with SingleTickerProviderStateMixin {
-  static const Color geekGreen = Color(0xFF2F8D46);
-  static const Color geekDarkGreen = Color(0xFF1B5E20);
-  static const Color geekLightGreen = Color(0xFF4CAF50);
-  static const Color geekBackground = Color(0xFFE8F5E9);
-  static const Color geekCardBg = Color(0xFFFFFFFF);
+  // Design constants matching HomeScreen
+  static const Color geekGreen = Color(0xFF4BC945);
+  static const Color backgroundColor = Color(0xFF000000);
+  static const Color cardBackground = Color(0xFF121212);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFF666666);
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -187,10 +188,10 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ReportResultScreen(
+        builder: (context) => CareerAnalysisReport(
           userTestId: userTestId,
           jobIndex: jobIndex,
-          atemptNumber: attemptNumber,
+          attemptNumber: attemptNumber,
           fromGapAnalysis: false,
         ),
       ),
@@ -199,10 +200,10 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
 
   // helper methods for UI
   Color _getSimilarityColor(double percentage) {
-    if (percentage >= 80) return const Color(0xFF2F8D46);
-    if (percentage >= 70) return const Color(0xFF4CAF50);
-    if (percentage >= 60) return const Color(0xFFF57C00);
-    return const Color(0xFFD32F2F);
+    if (percentage >= 80) return const Color(0xFF4CAF50); // Green
+    if (percentage >= 70) return const Color(0xFF81C784); // Light Green
+    if (percentage >= 60) return const Color(0xFFFFB74D); // Orange
+    return const Color(0xFFE57373); // Red
   }
 
   String _getRankingIcon(int rank) {
@@ -255,7 +256,7 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: geekBackground,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -276,15 +277,15 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: geekDarkGreen,
+                            color: textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
+                        const Text(
                           'View your completed assessments',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: textSecondary,
                           ),
                         ),
                       ],
@@ -313,7 +314,7 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: geekDarkGreen,
+                                  color: geekGreen,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -342,16 +343,14 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                       color: Colors.transparent,
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: geekCardBg,
+                                          color: cardBackground,
                                           borderRadius:
                                               BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: geekGreen.withOpacity(0.1),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
+                                          border: Border.all(
+                                            color:
+                                                Colors.white.withOpacity(0.05),
+                                            width: 1,
+                                          ),
                                         ),
                                         child: Column(
                                           children: [
@@ -382,7 +381,7 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                       child: const Icon(
                                                         Icons
                                                             .assessment_rounded,
-                                                        color: geekDarkGreen,
+                                                        color: geekGreen,
                                                         size: 24,
                                                       ),
                                                     ),
@@ -404,7 +403,7 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                   FontWeight
                                                                       .bold,
                                                               color:
-                                                                  geekDarkGreen,
+                                                                  textPrimary,
                                                             ),
                                                           ),
                                                           const SizedBox(
@@ -412,10 +411,11 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                           Text(
                                                             _formatDateTime(
                                                                 completedAt),
-                                                            style: TextStyle(
+                                                            style:
+                                                                const TextStyle(
                                                               fontSize: 13,
-                                                              color: Colors
-                                                                  .grey[600],
+                                                              color:
+                                                                  textSecondary,
                                                             ),
                                                           ),
                                                           const SizedBox(
@@ -433,12 +433,11 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                     BoxDecoration(
                                                                   color: status ==
                                                                           'Completed'
-                                                                      ? Colors
-                                                                          .green
+                                                                      ? geekGreen
                                                                           .withOpacity(
                                                                               0.1)
                                                                       : Colors
-                                                                          .amber
+                                                                          .orange
                                                                           .withOpacity(
                                                                               0.1),
                                                                   borderRadius:
@@ -457,12 +456,9 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                             .w600,
                                                                     color: status ==
                                                                             'Completed'
-                                                                        ? Colors
-                                                                            .green
-                                                                            .shade700
+                                                                        ? geekGreen
                                                                         : Colors
-                                                                            .amber
-                                                                            .shade700,
+                                                                            .orange,
                                                                   ),
                                                                 ),
                                                               ),
@@ -474,8 +470,8 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                   fontSize: 11,
                                                                   fontFamily:
                                                                       'Monospace',
-                                                                  color: Colors
-                                                                      .grey,
+                                                                  color:
+                                                                      textSecondary,
                                                                 ),
                                                               ),
                                                             ],
@@ -499,7 +495,11 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
 
                                             // expanded job recommendations section
                                             if (isExpanded) ...[
-                                              const Divider(height: 1),
+                                              Divider(
+                                                height: 1,
+                                                color: Colors.white
+                                                    .withOpacity(0.1),
+                                              ),
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.all(16),
@@ -522,8 +522,7 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                             fontSize: 15,
                                                             fontWeight:
                                                                 FontWeight.w600,
-                                                            color:
-                                                                geekDarkGreen,
+                                                            color: textPrimary,
                                                           ),
                                                         ),
                                                         const Spacer(),
@@ -577,26 +576,24 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                         ),
                                                       )
                                                     else if (jobs.isEmpty)
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(16.0),
+                                                      const Padding(
+                                                        padding: EdgeInsets.all(
+                                                            16.0),
                                                         child: Column(
                                                           children: [
                                                             Icon(
                                                               Icons
                                                                   .work_off_outlined,
                                                               size: 48,
-                                                              color: Colors
-                                                                  .grey[400],
+                                                              color:
+                                                                  textSecondary,
                                                             ),
-                                                            const SizedBox(
-                                                                height: 8),
+                                                            SizedBox(height: 8),
                                                             Text(
                                                               'No job recommendations found',
                                                               style: TextStyle(
-                                                                color: Colors
-                                                                    .grey[600],
+                                                                color:
+                                                                    textSecondary,
                                                                 fontSize: 14,
                                                               ),
                                                             ),
@@ -621,6 +618,8 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                     0;
 
                                                             return Card(
+                                                              color:
+                                                                  cardBackground,
                                                               margin:
                                                                   const EdgeInsets
                                                                       .only(
@@ -636,8 +635,9 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                 side:
                                                                     BorderSide(
                                                                   color: Colors
-                                                                          .grey[
-                                                                      300]!,
+                                                                      .white
+                                                                      .withOpacity(
+                                                                          0.05),
                                                                   width: 1,
                                                                 ),
                                                               ),
@@ -694,7 +694,7 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                                 style: const TextStyle(
                                                                                   fontSize: 15,
                                                                                   fontWeight: FontWeight.w600,
-                                                                                  color: Colors.black87,
+                                                                                  color: textPrimary,
                                                                                 ),
                                                                                 maxLines: 2,
                                                                                 overflow: TextOverflow.ellipsis,
@@ -705,7 +705,7 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                                   Expanded(
                                                                                     child: LinearProgressIndicator(
                                                                                       value: similarity / 100,
-                                                                                      backgroundColor: Colors.grey[200],
+                                                                                      backgroundColor: Colors.white.withOpacity(0.1),
                                                                                       valueColor: AlwaysStoppedAnimation<Color>(_getSimilarityColor(similarity)),
                                                                                       borderRadius: BorderRadius.circular(4),
                                                                                       minHeight: 8,
@@ -734,11 +734,11 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                                                       job['job_description'] ??
                                                                           '',
                                                                       style:
-                                                                          TextStyle(
+                                                                          const TextStyle(
                                                                         fontSize:
                                                                             13,
-                                                                        color: Colors
-                                                                            .grey[700],
+                                                                        color:
+                                                                            textSecondary,
                                                                         height:
                                                                             1.4,
                                                                       ),
@@ -825,30 +825,30 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
-                                    Icons.assessment_outlined,
+                                    Icons.history_rounded,
                                     size: 60,
-                                    color: geekGreen.withOpacity(0.3),
+                                    color: geekGreen,
                                   ),
                                 ),
                                 const SizedBox(height: 24),
                                 const Text(
-                                  'No Report Yet',
+                                  'No Reports Yet',
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: geekDarkGreen,
+                                    color: textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 40.0),
+                                const Padding(
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 40.0),
                                   child: Text(
-                                    'Complete your first assessment to view your detailed report and unlock personalized insights! :D',
+                                    'Complete an assessment to view your detailed career analysis reports.',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Colors.grey[600],
+                                      color: textSecondary,
                                       height: 1.5,
                                     ),
                                   ),
@@ -856,7 +856,13 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                                 const SizedBox(height: 24),
                                 ElevatedButton(
                                   onPressed: () {
-                                    const AssessmentScreen();
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const AssessmentScreen(),
+                                      ),
+                                    );
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: geekGreen,

@@ -12,10 +12,12 @@ class CareerRoadmapScreen extends StatefulWidget {
 }
 
 class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
-  static const Color geekGreen = Color(0xFF2F8D46);
-  static const Color geekDarkGreen = Color(0xFF1B5E20);
-  static const Color geekBackground = Color(0xFFE8F5E9);
-  static const Color geekCardBg = Color(0xFFFFFFFF);
+  // Design constants matching HomeScreen
+  static const Color geekGreen = Color(0xFF4BC945);
+  static const Color backgroundColor = Color(0xFF000000);
+  static const Color cardBackground = Color(0xFF121212);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFF666666);
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -264,10 +266,10 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
 
   // get similarity color based on percentage
   Color _getSimilarityColor(double percentage) {
-    if (percentage >= 80) return const Color(0xFF2F8D46); // Green
-    if (percentage >= 70) return const Color(0xFF4CAF50); // Light Green
-    if (percentage >= 60) return const Color(0xFFF57C00); // Orange
-    return const Color(0xFFD32F2F); // Red
+    if (percentage >= 80) return const Color(0xFF4CAF50); // Green
+    if (percentage >= 70) return const Color(0xFF81C784); // Light Green
+    if (percentage >= 60) return const Color(0xFFFFB74D); // Orange
+    return const Color(0xFFE57373); // Red
   }
 
   // get ranking icon based on position
@@ -311,7 +313,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: geekBackground,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -329,15 +331,15 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B5E20),
+                        color: textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    const Text(
                       'View your available career roadmaps based on job matches',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: textSecondary,
                       ),
                     ),
                   ],
@@ -350,7 +352,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                 child: isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
-                          color: Color(0xFF2F8D46),
+                          color: geekGreen,
                           strokeWidth: 2,
                         ),
                       )
@@ -358,12 +360,12 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                         ? Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Available Roadmaps (${assessmentAttempts.length})',
-                                style: const TextStyle(
+                              const Text(
+                                'Available Roadmaps',
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1B5E20),
+                                  color: geekGreen,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -392,16 +394,14 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                       color: Colors.transparent,
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: geekCardBg,
+                                          color: cardBackground,
                                           borderRadius:
                                               BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: geekGreen.withOpacity(0.1),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
+                                          border: Border.all(
+                                            color:
+                                                Colors.white.withOpacity(0.05),
+                                            width: 1,
+                                          ),
                                         ),
                                         child: Column(
                                           children: [
@@ -431,8 +431,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                       ),
                                                       child: const Icon(
                                                         Icons.map_rounded,
-                                                        color:
-                                                            Color(0xFF1B5E20),
+                                                        color: geekGreen,
                                                         size: 24,
                                                       ),
                                                     ),
@@ -453,8 +452,8 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                               fontWeight:
                                                                   FontWeight
                                                                       .bold,
-                                                              color: Color(
-                                                                  0xFF1B5E20),
+                                                              color:
+                                                                  textPrimary,
                                                             ),
                                                           ),
                                                           const SizedBox(
@@ -462,10 +461,11 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                           Text(
                                                             _formatDateTime(
                                                                 completedAt),
-                                                            style: TextStyle(
+                                                            style:
+                                                                const TextStyle(
                                                               fontSize: 13,
-                                                              color: Colors
-                                                                  .grey[600],
+                                                              color:
+                                                                  textSecondary,
                                                             ),
                                                           ),
                                                           const SizedBox(
@@ -483,8 +483,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                                     BoxDecoration(
                                                                   color: status ==
                                                                           'Completed'
-                                                                      ? Colors
-                                                                          .green
+                                                                      ? geekGreen
                                                                           .withOpacity(
                                                                               0.1)
                                                                       : Colors
@@ -507,12 +506,9 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                                             .w600,
                                                                     color: status ==
                                                                             'Completed'
-                                                                        ? Colors
-                                                                            .green
-                                                                            .shade700
+                                                                        ? geekGreen
                                                                         : Colors
-                                                                            .orange
-                                                                            .shade700,
+                                                                            .orange,
                                                                   ),
                                                                 ),
                                                               ),
@@ -524,8 +520,8 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                                   fontSize: 11,
                                                                   fontFamily:
                                                                       'Monospace',
-                                                                  color: Colors
-                                                                      .grey,
+                                                                  color:
+                                                                      textSecondary,
                                                                 ),
                                                               ),
                                                             ],
@@ -549,7 +545,11 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
 
                                             // expanded job matches section
                                             if (isExpanded) ...[
-                                              const Divider(height: 1),
+                                              Divider(
+                                                height: 1,
+                                                color: Colors.white
+                                                    .withOpacity(0.1),
+                                              ),
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.all(16),
@@ -572,8 +572,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                             fontSize: 15,
                                                             fontWeight:
                                                                 FontWeight.w600,
-                                                            color:
-                                                                geekDarkGreen,
+                                                            color: textPrimary,
                                                           ),
                                                         ),
                                                         const Spacer(),
@@ -628,26 +627,24 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                         ),
                                                       )
                                                     else if (jobMatches.isEmpty)
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(16.0),
+                                                      const Padding(
+                                                        padding: EdgeInsets.all(
+                                                            16.0),
                                                         child: Column(
                                                           children: [
                                                             Icon(
                                                               Icons
                                                                   .work_off_outlined,
                                                               size: 48,
-                                                              color: Colors
-                                                                  .grey[400],
+                                                              color:
+                                                                  textSecondary,
                                                             ),
-                                                            const SizedBox(
-                                                                height: 8),
+                                                            SizedBox(height: 8),
                                                             Text(
                                                               'No job matches found for this assessment',
                                                               style: TextStyle(
-                                                                color: Colors
-                                                                    .grey[600],
+                                                                color:
+                                                                    textSecondary,
                                                                 fontSize: 14,
                                                               ),
                                                             ),
@@ -684,6 +681,8 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                                     '0';
 
                                                             return Card(
+                                                              color:
+                                                                  cardBackground,
                                                               margin:
                                                                   const EdgeInsets
                                                                       .only(
@@ -699,8 +698,9 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                                 side:
                                                                     BorderSide(
                                                                   color: Colors
-                                                                          .grey[
-                                                                      300]!,
+                                                                      .white
+                                                                      .withOpacity(
+                                                                          0.05),
                                                                   width: 1,
                                                                 ),
                                                               ),
@@ -734,7 +734,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                                                 style: const TextStyle(
                                                                                   fontSize: 15,
                                                                                   fontWeight: FontWeight.w600,
-                                                                                  color: Colors.black87,
+                                                                                  color: textPrimary,
                                                                                 ),
                                                                                 maxLines: 2,
                                                                                 overflow: TextOverflow.ellipsis,
@@ -745,7 +745,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                                                   Expanded(
                                                                                     child: LinearProgressIndicator(
                                                                                       value: similarityPercentage / 100,
-                                                                                      backgroundColor: Colors.grey[200],
+                                                                                      backgroundColor: Colors.white.withOpacity(0.1),
                                                                                       valueColor: AlwaysStoppedAnimation<Color>(_getSimilarityColor(similarityPercentage)),
                                                                                       borderRadius: BorderRadius.circular(4),
                                                                                       minHeight: 8,
@@ -773,11 +773,11 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                                                     Text(
                                                                       jobDescription,
                                                                       style:
-                                                                          TextStyle(
+                                                                          const TextStyle(
                                                                         fontSize:
                                                                             13,
-                                                                        color: Colors
-                                                                            .grey[700],
+                                                                        color:
+                                                                            textSecondary,
                                                                         height:
                                                                             1.4,
                                                                       ),
@@ -866,7 +866,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                   child: Icon(
                                     Icons.map_outlined,
                                     size: 60,
-                                    color: geekGreen.withOpacity(0.3),
+                                    color: geekGreen,
                                   ),
                                 ),
                                 const SizedBox(height: 24),
@@ -875,19 +875,19 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1B5E20),
+                                    color: textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 40.0),
+                                const Padding(
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 40.0),
                                   child: Text(
                                     'Complete an assessment to generate personalized career roadmaps based on your job matches! :D',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Colors.grey[600],
+                                      color: textSecondary,
                                       height: 1.5,
                                     ),
                                   ),

@@ -147,15 +147,15 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white.withOpacity(0.05)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.info_outline_rounded,
                     size: 18,
                     color: geekGreen,
                   ),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  SizedBox(width: 8),
+                  Expanded(
                     child: Text(
                       'Don\'t worry, your previous results will be saved! :D',
                       style: TextStyle(
@@ -770,10 +770,10 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
+              const Expanded(
                 child: Text(
                   'Personalized Career Roadmap',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: geekGreen,
@@ -788,7 +788,8 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
             currentJobTitle ?? 'Unknown Career',
             style: const TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.w800,
+              fontFamily: 'JetBrainsMono',
+              fontWeight: FontWeight.w900,
               color: textPrimary,
               height: 1.2,
             ),
@@ -936,7 +937,6 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // level header with improved design
                 Container(
                   width: double.infinity,
                   padding:
@@ -993,7 +993,8 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                               levelName,
                               style: TextStyle(
                                 fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                                fontFamily: 'JetBrainsMono',
+                                fontWeight: FontWeight.w900,
                                 color: backgroundColor,
                                 letterSpacing: 0.3,
                               ),
@@ -1214,7 +1215,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       ),
       bottomNavigationBar: Container(
         color: backgroundColor,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
         child: SafeArea(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
