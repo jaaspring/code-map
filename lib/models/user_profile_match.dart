@@ -44,30 +44,30 @@ class JobMatch {
 
 class UserProfileMatchResponse {
   final String profileText;
-  final List<JobMatch> topMatches;
+  final List<JobMatch> jobMatches;
 
   UserProfileMatchResponse({
     required this.profileText,
-    required this.topMatches,
+    required this.jobMatches,
   });
 
   factory UserProfileMatchResponse.fromJson(Map<String, dynamic> json) {
     List<JobMatch> matches = [];
 
-    final topMatchesRaw = json['top_matches'];
-    if (topMatchesRaw is List) {
-      matches = topMatchesRaw
+    final jobMatchesRaw = json['job_matches'];
+    if (jobMatchesRaw is List) {
+      matches = jobMatchesRaw
           .map((e) => JobMatch.fromJson(e as Map<String, dynamic>))
           .toList();
-    } else if (topMatchesRaw is Map<String, dynamic>) {
-      matches = [JobMatch.fromJson(topMatchesRaw)];
+    } else if (jobMatchesRaw is Map<String, dynamic>) {
+      matches = [JobMatch.fromJson(jobMatchesRaw)];
     } else {
       matches = [];
     }
 
     return UserProfileMatchResponse(
       profileText: json["profile_text"] as String? ?? "Gap analysis",
-      topMatches: matches,
+      jobMatches: matches,
     );
   }
 }

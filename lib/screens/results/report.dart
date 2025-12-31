@@ -4,28 +4,28 @@ import 'package:code_map/services/api_service.dart';
 import 'package:flutter/material.dart';
 import '../career_roadmap/career_roadmap.dart';
 
-class ReportResultScreen extends StatefulWidget {
+class CareerAnalysisReport extends StatefulWidget {
   final String userTestId;
   final String jobIndex;
   final Map<String, dynamic>? gapAnalysisData;
-  final int? atemptNumber; // needed for fetching gap analysis separately
+  final int? attemptNumber; // needed for fetching gap analysis separately
   final bool?
       fromGapAnalysis; // flag to track if navigated from Gap Analysis Screen
 
-  const ReportResultScreen({
+  const CareerAnalysisReport({
     super.key,
     required this.userTestId,
     required this.jobIndex,
     this.gapAnalysisData,
-    this.atemptNumber,
+    this.attemptNumber,
     this.fromGapAnalysis = false, // default to false
   });
 
   @override
-  State<ReportResultScreen> createState() => _ReportResultScreenState();
+  State<CareerAnalysisReport> createState() => _CareerAnalysisReportState();
 }
 
-class _ReportResultScreenState extends State<ReportResultScreen> {
+class _CareerAnalysisReportState extends State<CareerAnalysisReport> {
   Map<String, dynamic>? report;
   Map<String, dynamic>? gapAnalysisData; // store gap analysis data
   bool isLoading = true;
@@ -43,14 +43,41 @@ class _ReportResultScreenState extends State<ReportResultScreen> {
       _fetchGapAnalysis();
     }
 
-    fetchReport();
+    _computeChartsAndFetchReport();
+  }
+
+// New combined function
+  Future<void> _computeChartsAndFetchReport() async {
+    setState(() => isLoading = true);
+
+    try {
+      print('STARTED: Triggering chart computation...');
+      await ApiService.generateCharts(
+          userTestId: widget.userTestId,
+          attemptNumber: widget.attemptNumber ?? 1);
+      print('SUCCESS: Chart computation completed!');
+
+      // Now fetch the report, charts should be ready
+      final response =
+          await ApiService.generateReport(widget.userTestId, widget.jobIndex);
+      print("Report data fetched: $response");
+
+      setState(() {
+        report = response['data'];
+        isLoading = false;
+      });
+    } catch (e, s) {
+      print("Error during charts + report fetch: $e");
+      print("Stack trace: $s");
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _fetchGapAnalysis() async {
     try {
       setState(() => isLoadingGapAnalysis = true);
 
-      final attemptNumber = widget.atemptNumber ?? 1;
+      final attemptNumber = widget.attemptNumber ?? 1;
 
       print("DEBUG: Fetching gap analysis with:");
       print("DEBUG: - userTestId: ${widget.userTestId}");
@@ -84,31 +111,12 @@ class _ReportResultScreenState extends State<ReportResultScreen> {
     }
   }
 
-  void fetchReport() async {
-    try {
-      final response =
-          await ApiService.generateReport(widget.userTestId, widget.jobIndex);
-      print("Report data: $response");
-      setState(() {
-        report = response['data'];
-        isLoading = false;
-      });
-    } catch (e, s) {
-      print("Error: $e");
-      print("Stack: $s");
-      setState(() => isLoading = false);
-    }
-  }
-
   // method to display gap analysis table (similar to Gap Analysis Screen)
   Widget _buildGapAnalysisTable(Map<String, dynamic> data, String title) {
     if (data.isEmpty) {
       print("DEBUG Table: $title data is empty!");
       return const SizedBox.shrink();
     }
-
-    print("DEBUG Table: Building $title with ${data.length} entries");
-    print("DEBUG Table: Data = $data");
 
     final entries = data.entries.toList();
 
@@ -164,9 +172,7 @@ class _ReportResultScreenState extends State<ReportResultScreen> {
                 ),
                 ...entries.map((e) {
                   final value = e.value;
-                  print("DEBUG Table Entry: ${e.key} = $value");
-
-                  // Handle different possible data structures
+                  // handle different possible data structures
                   final requiredLevel = value is Map
                       ? (value['required_level'] ?? value['required'] ?? '-')
                       : (value.toString());

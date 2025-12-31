@@ -6,12 +6,14 @@ class GapAnalysisScreen extends StatefulWidget {
   final String userTestId;
   final String jobIndex;
   final int attemptNumber;
+  final Map<String, dynamic>? preloadedGapData;
 
   const GapAnalysisScreen({
     super.key,
     required this.userTestId,
     required this.jobIndex,
     required this.attemptNumber,
+    this.preloadedGapData,
   });
 
   @override
@@ -32,6 +34,20 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
   Future<void> _fetchGapAnalysis() async {
     setState(() => _isLoading = true);
 
+    // check if we have preloaded data
+    if (widget.preloadedGapData != null) {
+      print("DEBUG: Using preloaded gap data");
+      setState(() {
+        _gapData = Map<String, dynamic>.from(
+            widget.preloadedGapData!["gap_analysis"] ?? {});
+        _gapData!['job_title'] =
+            widget.preloadedGapData!['job_title'] ?? "Selected Job";
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // fallback: fetch from API if no preloaded data
     try {
       final allGaps =
           await ApiService.getGapAnalysis(userTestId: widget.userTestId);
@@ -236,10 +252,10 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ReportResultScreen(
+                                  builder: (context) => CareerAnalysisReport(
                                     userTestId: widget.userTestId,
                                     jobIndex: widget.jobIndex,
-                                    atemptNumber: widget.attemptNumber,
+                                    attemptNumber: widget.attemptNumber,
                                     gapAnalysisData:
                                         _gapData, // pass the already-fetched data
                                     fromGapAnalysis: true,
