@@ -16,7 +16,7 @@ Personalized career recommendation and skill gap analysis powered by AI.
   - **Follow-Up Test** _(leverages NLP to generate personalized MCQs from user reflections)_
 - **Generate Embeddings & Job Matches** _(leverages NLP for semantic similarity and matching)_  
 - **Career Recommendations** _(leverages NLP to tailor suggestions based on analyzed input and job data)_  
-- **Skill Gap Analysis** _(compares user skills and knowledge with job requirements using NLP)_
+- **Gap Analysis** _(compares user skills and knowledge with job requirements using NLP)_
 - **Career Analysis Report** _(visualizes user skill gaps and test performance using radar and bar charts via Matplotlib)_
 - **Career Roadmap** _(generates structured career progression paths based on skill gap analysis using NLP)_
 
@@ -29,11 +29,6 @@ Personalized career recommendation and skill gap analysis powered by AI.
 - **Frontend:** Flutter  
 - **Database:** Firebase
 - **AI / ML:** OpenAI API, Hugging Face Transformers, LangChain  
-
----
-
-## Class Diagram (UML) 
-<img width="10398" height="5695" alt="20251114_579087" src="https://github.com/user-attachments/assets/d18e1017-80f0-4226-b660-582f651b8faf" />
 
 ---
 
