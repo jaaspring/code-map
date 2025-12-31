@@ -26,7 +26,7 @@ if not OPENAI_API_KEY:
 # Initialize LLM
 # -----------------------------
 llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
-oss_llm = GPTOSSWrapper(endpoint_url="http://localhost:5000/validate", temperature=0.0)
+oss_llm = GPTOSSWrapper(endpoint_url="http://localhost:5001/validate", temperature=0.0)
 
 # -----------------------------
 # System Message
