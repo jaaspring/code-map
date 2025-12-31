@@ -3,15 +3,17 @@ import 'package:flutter/material.dart';
 import '../../models/user_profile_match.dart';
 import '../../services/api_service.dart';
 import 'package:code_map/screens/results/gap_analysis.dart';
-
 import '../../utils/retake_service.dart';
 
 class CareerRecommendationsScreen extends StatefulWidget {
-  final String userTestId; // passed from FollowUpTest
-  final int attemptNumber; // passed from FollowUpTest
+  final String userTestId;
+  final int attemptNumber;
 
-  const CareerRecommendationsScreen(
-      {super.key, required this.userTestId, required this.attemptNumber});
+  const CareerRecommendationsScreen({
+    super.key,
+    required this.userTestId,
+    required this.attemptNumber,
+  });
 
   @override
   State<CareerRecommendationsScreen> createState() =>
@@ -25,14 +27,13 @@ class _CareerRecommendationsScreenState
   String? _errorMessage;
   final Map<String, bool> _expandedCards = {};
   String? _selectedJobIndex;
+  List<Map<String, dynamic>>? _allGaps;
 
   @override
   void initState() {
     super.initState();
-    // clear any expanded states from previous sessions
     _expandedCards.clear();
     _selectedJobIndex = null;
-    // now fetch fresh data
     _fetchProfileMatch();
   }
 
@@ -56,24 +57,21 @@ class _CareerRecommendationsScreenState
         return;
       }
 
-      print('Result received, topMatches: ${result.topMatches.length}');
-
+      print('Result received, jobMatches: ${result.jobMatches.length}');
       print(
-          'SUCCESS: API call completed! Total jobs: ${result.topMatches.length}');
+          'SUCCESS: API call completed! Total jobs: ${result.jobMatches.length}');
       setState(() {
         _profileMatch = result;
       });
 
-      await _precomputeSkillGaps();
-      await _precomputeCharts();
+      await _precomputeGaps();
 
-      if (_profileMatch!.topMatches.isNotEmpty) {
-        _selectedJobIndex = _profileMatch!.topMatches[0].jobIndex;
+      if (_profileMatch!.jobMatches.isNotEmpty) {
+        _selectedJobIndex = _profileMatch!.jobMatches[0].jobIndex;
         _expandedCards[_selectedJobIndex!] = true;
         print('Selected first job by default: Index $_selectedJobIndex');
       }
 
-      // mark assessment as completed after career recommendations are fetched
       await _markTestAsCompleted();
     } catch (e) {
       setState(() {
@@ -86,32 +84,19 @@ class _CareerRecommendationsScreenState
     }
   }
 
-  Future<void> _precomputeSkillGaps() async {
+  Future<void> _precomputeGaps() async {
     if (_profileMatch == null) return;
 
     try {
-      // print the current userTestId being used for the request
       print(
           'DEBUG: Fetching gap analysis for userTestId: ${widget.userTestId}');
-      print('DEBUG: Current attempt number: ${widget.attemptNumber}');
 
-      final allGaps =
-          await ApiService.getGapAnalysis(userTestId: widget.userTestId);
-      print('DEBUG: Received ${allGaps.length} total gap analysis entries');
+      _allGaps = await ApiService.getGapAnalysis(userTestId: widget.userTestId);
+      print('DEBUG: Received ${_allGaps!.length} total gap analysis entries');
 
       setState(() {
-        for (var job in _profileMatch!.topMatches) {
-          // log the jobIndex you are looking for
-          print(
-              'DEBUG: Looking for gap data for Job: "${job.jobTitle}" | Frontend jobIndex: "${job.jobIndex}"');
-
-          // log ALL job_index values from the gap analysis response
-          for (var gapEntry in allGaps) {
-            var gapJobIndex = gapEntry["job_index"]?.toString();
-            print('  -> Available in response: job_index: "$gapJobIndex"');
-          }
-
-          final gap = allGaps.firstWhere(
+        for (var job in _profileMatch!.jobMatches) {
+          final gap = _allGaps!.firstWhere(
             (g) => g["job_index"]?.toString() == job.jobIndex,
             orElse: () => {},
           );
@@ -124,14 +109,6 @@ class _CareerRecommendationsScreenState
             job.requiredKnowledge = gap["gap_analysis"]?["knowledge"] is Map
                 ? Map<String, dynamic>.from(gap["gap_analysis"]!["knowledge"])
                 : {};
-
-            print('DEBUG: SUCCESS - Mapped job "${job.jobTitle}"');
-            print('         Matched on job_index: ${job.dbJobIndex}');
-            print(
-                '         Skills found: ${job.requiredSkills?.keys.toList()}');
-          } else {
-            print(
-                'DEBUG: FAILURE - No gap data found for job_index: ${job.jobIndex}. Skills/Knowledge will be empty.');
           }
         }
       });
@@ -140,25 +117,10 @@ class _CareerRecommendationsScreenState
     }
   }
 
-  Future<void> _precomputeCharts() async {
-    try {
-      print('STARTED: Triggering chart computation...');
-
-      // this API call tells the backend to compute/generate charts for all jobs
-      await ApiService.getCharts(
-          userTestId: widget.userTestId, attemptNumber: widget.attemptNumber);
-
-      print('SUCCESS: Chart computation triggered on backend!');
-    } catch (e) {
-      print('Error triggering chart computation: $e');
-    }
-  }
-
   Future<void> _markTestAsCompleted() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // update attempt status to 'Completed'
     await RetakeService.updateAttemptStatus(
       userId: user.uid,
       testId: widget.userTestId,
@@ -177,164 +139,254 @@ class _CareerRecommendationsScreenState
     });
   }
 
+  Widget _buildMatchBadge(double percentage) {
+    final color = _getMatchColor(percentage);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${percentage.toStringAsFixed(1)}% Match',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildJobCard(JobMatch job) {
     final bool isExpanded = _expandedCards[job.jobIndex] ?? false;
     final bool isSelected = _selectedJobIndex == job.jobIndex;
+    final matchColor = _getMatchColor(job.similarityPercentage);
 
-    return Card(
-      elevation: isSelected ? 4 : 3,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isSelected
-            ? BorderSide(color: Theme.of(context).primaryColor, width: 2)
-            : BorderSide.none,
-      ),
-      color: isSelected ? Colors.blue[50] : null,
-      child: InkWell(
-        onTap: () => _selectCareer(job.jobIndex),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Material(
+        elevation: isSelected ? 8 : 2,
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.black,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: isSelected
+                ? Border.all(
+                    color: matchColor,
+                    width: 2,
+                  )
+                : Border.all(
+                    color: const Color.fromARGB(30, 255, 255, 255),
+                    width: 1,
+                  ),
+            gradient: isSelected
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      matchColor.withOpacity(0.05),
+                      matchColor.withOpacity(0.02),
+                      Colors.transparent,
+                    ],
+                  )
+                : null,
+          ),
+          child: InkWell(
+            onTap: () => _selectCareer(job.jobIndex),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      job.jobTitle,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            isSelected ? Theme.of(context).primaryColor : null,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          job.jobTitle,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected ? matchColor : Colors.white,
+                            height: 1.3,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      _buildMatchBadge(job.similarityPercentage),
+                    ],
                   ),
-                  Chip(
-                    label: Text(
-                      "${job.similarityPercentage.toStringAsFixed(2)}% Match",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                  const SizedBox(height: 12),
+                  if (!isExpanded) _buildShortJobPreview(job.jobDescription),
+                  if (isExpanded) ...[
+                    const SizedBox(height: 16),
+                    _buildFullJobDescription(job.jobDescription),
+                  ],
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? matchColor.withOpacity(0.1)
+                              : const Color.fromARGB(30, 255, 255, 255),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isSelected ? Icons.check_circle : Icons.circle,
+                              size: 12,
+                              color: isSelected ? matchColor : Colors.grey,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isSelected ? "Selected" : "Tap to select",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected ? matchColor : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    backgroundColor: _getMatchColor(job.similarityPercentage),
+                      Icon(
+                        isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: isSelected ? matchColor : Colors.grey,
+                        size: 24,
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              if (!isExpanded) _buildShortJobPreview(job.jobDescription),
-              if (isExpanded) ...[
-                const SizedBox(height: 12),
-                ..._buildFullJobDescription(job.jobDescription),
-              ],
-              Align(
-                alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      isSelected ? "Selected" : "Tap to select",
-                      style: TextStyle(
-                        color: isSelected
-                            ? Theme.of(context).primaryColor
-                            : Colors.grey,
-                        fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      color: isSelected
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSkillsCard(JobMatch job) {
+  Widget _buildSkillsSection(JobMatch job) {
     if (job.requiredSkills == null || job.requiredSkills!.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Required Skills:",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            "Key Skills",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: job.requiredSkills!.keys.map((skill) {
-                return Chip(
-                  label: Text(skill),
-                  backgroundColor: Colors.blue[50],
-                  visualDensity: VisualDensity.compact,
-                );
-              }).toList(),
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: job.requiredSkills!.keys.map((skill) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF333333),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                skill,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF4BC945),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
-  Widget _buildKnowledgeCard(JobMatch job) {
+  Widget _buildKnowledgeSection(JobMatch job) {
     if (job.requiredKnowledge == null || job.requiredKnowledge!.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Required Knowledge:",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            "Required Knowledge",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: job.requiredKnowledge!.keys.map((knowledge) {
-                return Chip(
-                  label: Text(knowledge),
-                  backgroundColor: Colors.green[50],
-                  visualDensity: VisualDensity.compact,
-                );
-              }).toList(),
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: job.requiredKnowledge!.keys.map((knowledge) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF333333),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                knowledge,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF4BC945),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
@@ -351,23 +403,34 @@ class _CareerRecommendationsScreenState
 
     return Text(
       previewText,
-      style: const TextStyle(fontSize: 14, color: Colors.grey),
+      style: TextStyle(
+        fontSize: 14,
+        color: Colors.white.withOpacity(0.7),
+        height: 1.5,
+      ),
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
     );
   }
 
-  List<Widget> _buildFullJobDescription(String description) {
-    final List<Widget> widgets = [];
-    widgets.add(
-      const Text(
-        "Career Description:",
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-      ),
+  Widget _buildFullJobDescription(String description) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            "Career Overview",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        ..._formatJobDescription(description),
+      ],
     );
-    widgets.add(const SizedBox(height: 8));
-    widgets.addAll(_formatJobDescription(description));
-    return widgets;
   }
 
   List<Widget> _formatJobDescription(String description) {
@@ -381,21 +444,44 @@ class _CareerRecommendationsScreenState
       if (line.startsWith('- ') || line.startsWith('• ')) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 4),
+            padding: const EdgeInsets.only(left: 16, bottom: 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('• '),
-                Expanded(child: Text(line.substring(2).trim())),
+                Icon(
+                  Icons.circle,
+                  size: 6,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    line.substring(2).trim(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.8),
+                      height: 1.5,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         );
       } else {
-        widgets.add(Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(line),
-        ));
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              line,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withOpacity(0.8),
+                height: 1.5,
+              ),
+            ),
+          ),
+        );
       }
     }
 
@@ -403,117 +489,230 @@ class _CareerRecommendationsScreenState
   }
 
   Color _getMatchColor(double percentage) {
-    if (percentage >= 80) return Colors.green;
-    if (percentage >= 60) return Colors.blue;
-    if (percentage >= 40) return Colors.orange;
-    return Colors.red;
+    if (percentage >= 80) return const Color(0xFF4BC945);
+    if (percentage >= 60) return const Color(0xFF4BC945);
+    if (percentage >= 40) return const Color(0xFFFFB74D);
+    return const Color(0xFFFF6B6B);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Career Recommendations")),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_rounded, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
+                      "Career Recommendations",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 24),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          "Recommended Career Paths",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ..._profileMatch!.topMatches
-                          .map((job) => _buildJobCard(job)),
-                      if (_selectedJobIndex != null) ...[
-                        for (final job in _profileMatch!.topMatches)
-                          if (job.jobIndex == _selectedJobIndex) ...[
-                            _buildSkillsCard(job),
-                            _buildKnowledgeCard(job),
-                          ],
-                      ],
-                      const SizedBox(height: 32),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_selectedJobIndex != null &&
-                                  _profileMatch != null) {
-                                final selectedJob = _profileMatch!.topMatches
-                                    .firstWhere((job) =>
-                                        job.jobIndex == _selectedJobIndex);
-                                if (selectedJob.dbJobIndex != null) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => GapAnalysisScreen(
-                                        userTestId: widget.userTestId,
-                                        jobIndex: selectedJob.dbJobIndex!,
-                                        attemptNumber: widget.attemptNumber,
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Skill gap data is not available for "${selectedJob.jobTitle}"'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'Please select a career path first'),
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).primaryColor,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Based on your assessment results",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Content
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF4BC945)),
                               ),
                             ),
-                            child: const Text(
-                              "Proceed to Skill Gap Analysis",
+                            const SizedBox(height: 16),
+                            Text(
+                              "Analyzing your results...",
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Colors.white.withOpacity(0.8),
                               ),
                             ),
-                          ),
+                          ],
                         ),
+                      )
+                    : _errorMessage != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline_rounded,
+                                    color: Colors.red,
+                                    size: 48,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _errorMessage!,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Your Top Career Paths",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Select one to view detailed analysis",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white.withOpacity(0.6),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Job Cards
+                                ..._profileMatch!.jobMatches
+                                    .map((job) => _buildJobCard(job)),
+
+                                // Selected Job Details
+                                if (_selectedJobIndex != null) ...[
+                                  for (final job in _profileMatch!.jobMatches)
+                                    if (job.jobIndex == _selectedJobIndex) ...[
+                                      const SizedBox(height: 24),
+                                      _buildSkillsSection(job),
+                                      const SizedBox(height: 24),
+                                      _buildKnowledgeSection(job),
+                                    ],
+                                ],
+
+                                const SizedBox(height: 40),
+                              ],
+                            ),
+                          ),
+              ),
+
+              // Proceed Button
+              if (!_isLoading && _errorMessage == null)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_selectedJobIndex != null && _profileMatch != null) {
+                        final selectedJob = _profileMatch!.jobMatches
+                            .firstWhere(
+                                (job) => job.jobIndex == _selectedJobIndex);
+
+                        if (_allGaps != null && _allGaps!.isNotEmpty) {
+                          final gapEntry = _allGaps!.firstWhere(
+                            (g) =>
+                                g["job_index"]?.toString() ==
+                                selectedJob.jobIndex,
+                            orElse: () => {},
+                          );
+
+                          if (gapEntry.isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => GapAnalysisScreen(
+                                  userTestId: widget.userTestId,
+                                  jobIndex: selectedJob.dbJobIndex!,
+                                  attemptNumber: widget.attemptNumber,
+                                  preloadedGapData: gapEntry,
+                                ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Skill gap data is not available for "${selectedJob.jobTitle}"'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Gap analysis data not loaded yet'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select a career path first'),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4BC945),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 24),
-                    ],
+                    ),
+                    child: const Text(
+                      "View Skill Gap Analysis",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ),
                 ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
