@@ -114,32 +114,20 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
     });
 
     try {
+      final response = await ApiService.getAllRecommendedJobs(testId);
       final jobs = <Map<String, dynamic>>[];
 
-      // try to load all 3 job recommendations (0, 1, 2)
-      for (int jobIndex = 0; jobIndex < 3; jobIndex++) {
-        try {
-          final response = await ApiService.generateReport(
-            testId,
-            jobIndex.toString(),
-          );
-
-          if (response['data'] != null && response['data']['job'] != null) {
-            final jobData = response['data']['job'];
-            final similarity =
-                jobData['similarity_percentage']?.toString() ?? '0';
-
-            jobs.add({
-              'job_index': jobIndex.toString(),
-              'job_title': jobData['job_title'] ?? 'Job ${jobIndex + 1}',
-              'job_description': jobData['job_description'] ?? '',
-              'similarity_percentage': similarity,
-              'report_data': response['data'],
-            });
-          }
-        } catch (e) {
-          print('Error loading job $jobIndex for test $testId: $e');
-          // continue with other jobs
+      if (response['data'] is List) {
+        final jobsList = response['data'] as List;
+        for (var job in jobsList) {
+          jobs.add({
+            'job_index': job['job_index'].toString(),
+            'job_title': job['job_title'] ?? 'Unknown Job',
+            'job_description': job['job_description'] ?? '',
+            'similarity_percentage':
+                job['similarity_percentage']?.toString() ?? '0',
+            'report_data': null,
+          });
         }
       }
 
@@ -152,15 +140,19 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
         return bPercent.compareTo(aPercent);
       });
 
-      setState(() {
-        _loadedJobs[testId] = jobs;
-        _loadingJobs[testId] = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadedJobs[testId] = jobs;
+          _loadingJobs[testId] = false;
+        });
+      }
     } catch (e) {
       print('Error fetching jobs for test $testId: $e');
-      setState(() {
-        _loadingJobs[testId] = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loadingJobs[testId] = false;
+        });
+      }
     }
   }
 
