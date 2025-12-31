@@ -433,6 +433,9 @@ def get_all_recommended_jobs(user_test_id: str):
                 {
                     "job_index": job.get("job_index", ""),
                     "job_title": job.get("job_title", "Unknown Title"),
+                    "similarity_percentage": job.get("similarity_percentage", 0),
+                    "job_description": job.get("job_description", ""),
+                    "required_skills": job.get("required_skills", {}),
                 }
             )
 
