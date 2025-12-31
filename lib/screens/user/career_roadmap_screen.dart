@@ -151,7 +151,7 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
 
       if (querySnapshot.docs.isNotEmpty) {
         final recDoc = querySnapshot.docs.first;
-        final data = recDoc.data();
+        recDoc.data();
 
         // Get the job_matches subcollection
         final jobMatchesSnapshot =

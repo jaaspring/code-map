@@ -246,13 +246,6 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
     return months[month - 1];
   }
 
-  String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour % 12;
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    final amPm = dateTime.hour < 12 ? 'AM' : 'PM';
-    return '${hour == 0 ? 12 : hour}:$minute $amPm';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
