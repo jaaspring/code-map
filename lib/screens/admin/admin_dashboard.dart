@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lottie/lottie.dart';
 import 'package:codemapv1/screens/login_screen.dart';
 import 'user_list_screen.dart';
+import 'admin_badge_creator_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -11,336 +13,154 @@ class AdminDashboard extends StatefulWidget {
   State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
-class _AdminDashboardState extends State<AdminDashboard>
-    with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late AnimationController _backgroundController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+class _AdminDashboardState extends State<AdminDashboard> {
+  final PageController _pageController = PageController();
+  int _carouselIndex = 0;
 
-  // GeeksforGeeks color scheme - matching user home screen
-  static const Color geekGreen = Color(0xFF2F8D46);
-  static const Color geekDarkGreen = Color(0xFF1B5E20);
-  static const Color geekLightGreen = Color(0xFF4CAF50);
-  static const Color geekAccent = Color(0xFF66BB6A);
-  static const Color geekBackground = Color(0xFFE8F5E9);
+  // Color scheme
+  static const Color geekGreen = Color(0xFF4BC945);
+  static const Color geekDarkGreen = Color(0xFF3AA036);
+
+  bool _isUsersPressed = false;
+  bool _isBadgesPressed = false;
+  bool _isActivePressed = false;
+  bool _isNewPressed = false;
+  bool _isManageUsersPressed = false;
+  bool _isManageBadgesPressed = false;
+  bool _isStatsPressed = false;
+  bool _isSettingsPressed = false;
+
+  // Cache stats data
+  Map<String, int>? _cachedStats;
+  bool _isLoadingStats = true;
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _backgroundController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
-
-    _fadeController.forward();
-    _slideController.forward();
+    _loadDashboardStats();
   }
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _slideController.dispose();
-    _backgroundController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadDashboardStats() async {
+    try {
+      final stats = await getDashboardStats();
+      if (mounted) {
+        setState(() {
+          _cachedStats = stats;
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading dashboard stats: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingStats = false; // Show grid with 0s if error
+        });
+      }
+    }
   }
 
   Future<Map<String, int>> getDashboardStats() async {
     final usersSnapshot =
         await FirebaseFirestore.instance.collection('users').get();
+    final badgesSnapshot =
+        await FirebaseFirestore.instance.collection('badge_definitions').get();
+
+    final totalUsers = usersSnapshot.size > 0 ? usersSnapshot.size - 1 : 0;
+    final activeUsers = usersSnapshot.size > 0 ? usersSnapshot.size - 1 : 0;
+
+    final now = DateTime.now();
+    final oneWeekAgo = now.subtract(const Duration(days: 7));
+
+    int newUsers = 0;
+    for (var doc in usersSnapshot.docs) {
+      final data = doc.data();
+      if (data['createdAt'] != null && data['createdAt'] is Timestamp) {
+        final createdAt = (data['createdAt'] as Timestamp).toDate();
+        if (createdAt.isAfter(oneWeekAgo)) {
+          newUsers++;
+        }
+      }
+    }
+
     return {
-      'totalUsers': usersSnapshot.size,
-      'activeUsers': usersSnapshot.size,
-      'newUsers': 5,
+      'totalUsers': totalUsers,
+      'activeUsers': activeUsers,
+      'newUsers': newUsers,
+      'totalBadges': badgesSnapshot.size,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      backgroundColor: Colors.black,
+      body: Column(
         children: [
-          // Animated gradient background matching user home screen
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    geekBackground,
-                    Colors.white,
-                    geekLightGreen.withOpacity(0.2),
-                    geekBackground,
-                  ],
-                ),
+          // Header
+          Container(
+            padding:
+                const EdgeInsets.only(top: 50, bottom: 20, left: 20, right: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [geekGreen, geekDarkGreen],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
               ),
             ),
-          ),
-          // Background with code symbols pattern
-          Positioned.fill(
-            child: CustomPaint(
-              painter: CodePatternPainter(),
-            ),
-          ),
-
-          SafeArea(
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Custom App Bar with GeeksforGeeks gradient
-                Container(
-                  padding: const EdgeInsets.only(top: 20, bottom: 20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [geekGreen, geekDarkGreen],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: geekGreen.withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '.CodeMap.',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
                       ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '.CodeMap.',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Admin Dashboard',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () async {
-                              await FirebaseAuth.instance.signOut();
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const LoginScreen()),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(25),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              child: const Icon(Icons.logout,
-                                  color: Colors.white, size: 24),
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Admin Dashboard',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.85),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                // Dashboard Content
-                Expanded(
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Stats Cards Section
-                              FutureBuilder<Map<String, int>>(
-                                future: getDashboardStats(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                geekGreen),
-                                      ),
-                                    );
-                                  }
-                                  if (snapshot.hasError) {
-                                    return const Text("Error fetching data");
-                                  }
-
-                                  final stats = snapshot.data ?? {};
-                                  return Column(
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: GestureDetector(
-                                              onTap: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        const UserListScreen(),
-                                                  ),
-                                                );
-                                              },
-                                              child: _buildStatsCard(
-                                                'Total Users',
-                                                stats['totalUsers']
-                                                        ?.toString() ??
-                                                    '0',
-                                                Icons.people,
-                                                geekGreen,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 15),
-                                          Expanded(
-                                            child: _buildStatsCard(
-                                              'Active Users',
-                                              stats['activeUsers']
-                                                      ?.toString() ??
-                                                  '0',
-                                              Icons.person_outline,
-                                              geekLightGreen,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 15),
-                                      _buildStatsCard(
-                                        'New Users This Week',
-                                        stats['newUsers']?.toString() ?? '0',
-                                        Icons.trending_up,
-                                        geekAccent,
-                                        isWide: true,
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-
-                              const SizedBox(height: 32),
-
-                              // Quick Actions Section
-                              const Text(
-                                'Quick Actions',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              // Action Buttons
-                              GridView.count(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 15,
-                                mainAxisSpacing: 15,
-                                childAspectRatio: 1.2,
-                                children: [
-                                  _buildActionCard(
-                                    'Manage Users',
-                                    Icons.manage_accounts,
-                                    geekGreen,
-                                    () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const UserListScreen(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  _buildActionCard(
-                                    'View Stats',
-                                    Icons.analytics,
-                                    geekLightGreen,
-                                    () => ScaffoldMessenger.of(context)
-                                        .showSnackBar(
-                                      const SnackBar(
-                                        content:
-                                            Text('View Stats coming soon!'),
-                                        backgroundColor: geekGreen,
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    ),
-                                  ),
-                                  _buildActionCard(
-                                    'Settings',
-                                    Icons.settings,
-                                    geekAccent,
-                                    () => ScaffoldMessenger.of(context)
-                                        .showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Settings coming soon!'),
-                                        backgroundColor: geekGreen,
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    ),
-                                  ),
-                                  _buildActionCard(
-                                    'Reports',
-                                    Icons.assessment,
-                                    geekDarkGreen,
-                                    () => ScaffoldMessenger.of(context)
-                                        .showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Reports coming soon!'),
-                                        backgroundColor: geekGreen,
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () async {
+                      await FirebaseAuth.instance.signOut();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const LoginScreen()),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.logout,
+                        color: Colors.white,
+                        size: 24,
                       ),
                     ),
                   ),
@@ -348,132 +168,530 @@ class _AdminDashboardState extends State<AdminDashboard>
               ],
             ),
           ),
+
+          // Main content
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+
+                    // 4 Stats Cards (2x2 grid)
+                    _isLoadingStats
+                        ? Container(
+                            height: 200,
+                            alignment: Alignment.center,
+                            child: const CircularProgressIndicator(
+                              color: geekGreen,
+                            ),
+                          )
+                        : Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildSmallStatCard(
+                                      'Total Users',
+                                      _cachedStats?['totalUsers']?.toString() ??
+                                          '0',
+                                      Icons.people_outline,
+                                      _isUsersPressed,
+                                      () => setState(
+                                          () => _isUsersPressed = true),
+                                      () => setState(
+                                          () => _isUsersPressed = false),
+                                      () => setState(
+                                          () => _isUsersPressed = false),
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const UserListScreen(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildSmallStatCard(
+                                      'Total Badges',
+                                      _cachedStats?['totalBadges']
+                                              ?.toString() ??
+                                          '0',
+                                      Icons.emoji_events_outlined,
+                                      _isBadgesPressed,
+                                      () => setState(
+                                          () => _isBadgesPressed = true),
+                                      () => setState(
+                                          () => _isBadgesPressed = false),
+                                      () => setState(
+                                          () => _isBadgesPressed = false),
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const AdminBadgeCreatorScreen(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildSmallStatCard(
+                                      'Active Users',
+                                      _cachedStats?['activeUsers']
+                                              ?.toString() ??
+                                          '0',
+                                      Icons.person_outline,
+                                      _isActivePressed,
+                                      () => setState(
+                                          () => _isActivePressed = true),
+                                      () => setState(
+                                          () => _isActivePressed = false),
+                                      () => setState(
+                                          () => _isActivePressed = false),
+                                      null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildSmallStatCard(
+                                      'New Users',
+                                      _cachedStats?['newUsers']?.toString() ??
+                                          '0',
+                                      Icons.trending_up,
+                                      _isNewPressed,
+                                      () =>
+                                          setState(() => _isNewPressed = true),
+                                      () =>
+                                          setState(() => _isNewPressed = false),
+                                      () =>
+                                          setState(() => _isNewPressed = false),
+                                      null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                    const SizedBox(height: 24),
+
+                    // Section Title
+                    const Text(
+                      'What Admin Can Do',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: geekGreen,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Admin Carousel
+                    _buildCarousel(),
+
+                    const SizedBox(height: 12),
+
+                    // Carousel indicators
+                    _buildCarouselIndicators(),
+
+                    const SizedBox(height: 24),
+
+                    // Section Title
+                    const Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: geekGreen,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Action Cards with Arrows
+                    _buildActionCard(
+                      'Manage Users',
+                      'View and manage all users',
+                      Icons.manage_accounts,
+                      _isManageUsersPressed,
+                      () => setState(() => _isManageUsersPressed = true),
+                      () => setState(() => _isManageUsersPressed = false),
+                      () => setState(() => _isManageUsersPressed = false),
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const UserListScreen(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionCard(
+                      'Manage Badges',
+                      'Create and edit badges',
+                      Icons.emoji_events,
+                      _isManageBadgesPressed,
+                      () => setState(() => _isManageBadgesPressed = true),
+                      () => setState(() => _isManageBadgesPressed = false),
+                      () => setState(() => _isManageBadgesPressed = false),
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminBadgeCreatorScreen(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionCard(
+                      'View Stats',
+                      'Analytics and reports',
+                      Icons.analytics,
+                      _isStatsPressed,
+                      () => setState(() => _isStatsPressed = true),
+                      () => setState(() => _isStatsPressed = false),
+                      () => setState(() => _isStatsPressed = false),
+                      () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Coming soon!'),
+                          backgroundColor: geekGreen,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionCard(
+                      'Settings',
+                      'App configuration',
+                      Icons.settings,
+                      _isSettingsPressed,
+                      () => setState(() => _isSettingsPressed = true),
+                      () => setState(() => _isSettingsPressed = false),
+                      () => setState(() => _isSettingsPressed = false),
+                      () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Coming soon!'),
+                          backgroundColor: geekGreen,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsCard(String title, String value, IconData icon, Color color,
-      {bool isWide = false}) {
+  // Small Stat Cards - IMPROVED FOR ELDERLY READABILITY
+  Widget _buildSmallStatCard(
+    String title,
+    String value,
+    IconData icon,
+    bool isPressed,
+    VoidCallback onTapDown,
+    VoidCallback onTapUp,
+    VoidCallback onTapCancel,
+    VoidCallback? onTap,
+  ) {
+    final bool clickable = onTap != null;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$title: $value'),
-              backgroundColor: geekGreen,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          width: isWide ? double.infinity : null,
-          padding: const EdgeInsets.all(20),
+        onTap: clickable ? onTap : null,
+        onTapDown: clickable ? (_) => onTapDown() : null,
+        onTapUp: clickable ? (_) => onTapUp() : null,
+        onTapCancel: clickable ? onTapCancel : null,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          // jangan paksa height besar sangat, bagi flexible sikit
+          height: 140, // Fixed height to ensure grid consistency
+          padding: const EdgeInsets.all(14), // reduce sikit (was 16)
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.3)),
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isPressed ? Colors.white : geekGreen,
+              width: 2.5,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                spreadRadius: 0,
-                blurRadius: 20,
-                offset: const Offset(0, 5),
+                color: geekGreen.withOpacity(isPressed ? 0.28 : 0.14),
+                blurRadius: isPressed ? 14 : 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Row(
+          transform:
+              isPressed ? Matrix4.identity().scaled(0.98) : Matrix4.identity(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // icon box kecil sikit supaya tak overflow
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8), // was 10
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(15),
+                  color: geekGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 24,
+                child: Icon(icon, color: geekGreen, size: 24), // was 26
+              ),
+
+              const SizedBox(height: 10),
+
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              const SizedBox(height: 6),
+
+              // ini yang avoid overflow: number akan scale down bila sempit
+              Expanded(
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.bottomLeft,
+                    child: Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 15),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Carousel for Admin
+  Widget _buildCarousel() {
+    return SizedBox(
+      height: 180,
+      child: PageView(
+        controller: _pageController,
+        physics: const PageScrollPhysics(),
+        onPageChanged: (index) {
+          setState(() {
+            _carouselIndex = index;
+          });
+        },
+        children: [
+          _buildCarouselCard(
+            title: 'User Management',
+            description:
+                'Monitor and manage all registered users. View user activities, approve accounts, and maintain platform security.',
+            icon: Icons.people,
+            color: Colors.white,
+          ),
+          _buildCarouselCard(
+            title: 'Badge System',
+            description:
+                'Create, edit, and manage achievement badges. Track user progress and reward milestones across the platform.',
+            icon: Icons.emoji_events,
+            color: Colors.white,
+          ),
+          _buildCarouselCard(
+            title: 'Analytics Dashboard',
+            description:
+                'Access detailed insights on user engagement, platform growth, and content performance metrics.',
+            icon: Icons.analytics,
+            color: Colors.white,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCarouselCard({
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 140,
+            height: 140,
+            child: Lottie.asset(
+              'assets/lottie/IQ-Practice.json',
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.smart_toy,
+                  size: 80,
+                  color: Colors.black,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCarouselIndicators() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(3, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: _carouselIndex == index ? 28 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: _carouselIndex == index ? geekGreen : Colors.grey.shade700,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
+    );
+  }
+
+  // Action Card with Arrow
+  Widget _buildActionCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    bool isPressed,
+    VoidCallback onTapDown,
+    VoidCallback onTapUp,
+    VoidCallback onTapCancel,
+    VoidCallback onTap,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTapDown: (_) => onTapDown(),
+        onTapUp: (_) => onTapUp(),
+        onTapCancel: onTapCancel,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isPressed ? geekGreen : geekGreen.withOpacity(0.3),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: geekGreen.withOpacity(isPressed ? 0.25 : 0.15),
+                blurRadius: isPressed ? 12 : 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          transform:
+              isPressed ? Matrix4.identity().scaled(0.98) : Matrix4.identity(),
+          child: Row(
+            children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        letterSpacing: 0.3,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 4),
                     Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: color,
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionCard(
-      String title, IconData icon, Color color, VoidCallback onTap) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                spreadRadius: 0,
-                blurRadius: 20,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-                textAlign: TextAlign.center,
+              const Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.black38,
+                size: 18,
               ),
             ],
           ),
@@ -481,51 +699,4 @@ class _AdminDashboardState extends State<AdminDashboard>
       ),
     );
   }
-}
-
-// Custom painter for code pattern background (same as user home screen)
-class CodePatternPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-    );
-
-    final codeSymbols = [
-      '</>',
-      '{',
-      '}',
-      '()',
-      '[]',
-      ';',
-      'if',
-      'for',
-      'fn',
-      'var',
-      '==',
-      'let'
-    ];
-
-    for (var i = 0; i < 30; i++) {
-      final x = (i * 80.0) % size.width;
-      final y = ((i * 50.0) % size.height);
-      final symbol = codeSymbols[i % codeSymbols.length];
-
-      textPainter.text = TextSpan(
-        text: symbol,
-        style: TextStyle(
-          fontSize: 20,
-          color: const Color(0xFF2F8D46).withOpacity(0.05),
-          fontFamily: 'monospace',
-          fontWeight: FontWeight.bold,
-        ),
-      );
-
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(x, y));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

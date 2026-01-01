@@ -1,6 +1,6 @@
-import 'package:codemapv1/screens/welcome_page.dart';
 import 'package:firebase_core/firebase_core.dart'; // Import Firebase Core
 import 'package:flutter/material.dart';
+import 'screens/splash_screen.dart'; // Import SplashScreen here
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure widgets are initialized
@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'CodeMap',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: WelcomePage(), // Set SplashScreen as the starting screen
+      home: SplashScreen(), // Set SplashScreen as the starting screen
       debugShowCheckedModeBanner: false, // Disable the debug banner
     );
   }

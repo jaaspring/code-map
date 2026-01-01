@@ -1,6 +1,12 @@
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:codemapv1/screens/login_screen.dart';
+import 'package:codemapv1/screens/user/profile_screen.dart';
+import 'package:codemapv1/screens/user/badges_screen.dart';
+import 'package:codemapv1/widgets/custom_bottom_nav.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -11,18 +17,28 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
-  bool _isSearchFocused = false;
+  int _selectedIndex = 0;
+  int _carouselIndex = 0;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  int _selectedIndex = 0;
+  final PageController _pageController = PageController();
 
-  static const Color geekGreen = Color(0xFF2F8D46);
-  static const Color geekDarkGreen = Color(0xFF1B5E20);
-  static const Color geekLightGreen = Color(0xFF4CAF50);
-  static const Color geekBackground = Color(0xFFE8F5E9);
-  static const Color geekCardBg = Color(0xFFFFFFFF);
+  bool _isAssessmentPressed = false;
+  bool _isAchievementPressed = false;
+
+  // Color scheme
+  static const Color geekGreen = Color(0xFF4BC945);
+  static const Color geekDarkGreen = Color(0xFF3AA036);
+  static const Color geekLightGreen = Color(0xFF5DD954);
+  static const Color geekAccent = Color(0xFF6BE062);
+  static const Color geekCardBg = Color(0xFF1A1A1A);
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String _profileImageUrl = '';
+  String _name = '';
+  int _unlockedBadgesCount = 0;
 
   @override
   void initState() {
@@ -35,409 +51,583 @@ class _HomePageState extends State<HomePage>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    _fetchProfileData();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
+  Future<void> _fetchProfileData() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        final doc = await _firestore.collection('users').doc(user.uid).get();
+        if (doc.exists) {
+          final data = doc.data();
+          final badges = List<String>.from(data?['badges'] ?? []);
+          setState(() {
+            _profileImageUrl = data?['photoUrl'] ?? '';
+            _name = data?['name'] ?? '';
+            _unlockedBadgesCount = badges.length;
+          });
+        }
+      } catch (e) {
+        print('Error fetching profile data: $e');
+      }
+    }
+  }
+
   String get userName {
+    if (_name.isNotEmpty) {
+      return _name;
+    }
     final user = _auth.currentUser;
     if (user?.displayName != null && user!.displayName!.isNotEmpty) {
       return user.displayName!;
     } else if (user?.email != null) {
       return user!.email!.split('@')[0];
     }
-    return 'User';
+    return '';
   }
 
   Future<void> _logout(BuildContext context) async {
-    await _auth.signOut();
-    if (!mounted) return;
-    Navigator.pushReplacement(
+    try {
+      await _auth.signOut();
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const LoginScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error logging out: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _navigateToProfile() {
+    Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+      MaterialPageRoute(
+        builder: (context) => ProfileScreen(),
+      ),
+    ).then((_) {
+      _fetchProfileData();
+    });
+  }
+
+  void _navigateToBadges() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BadgesScreen(),
+      ),
+    ).then((_) {
+      _fetchProfileData();
+    });
+  }
+
+  void _onBottomNavTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    if (index == 3) {
+      _navigateToProfile();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: geekBackground,
+      backgroundColor: Colors.black,
       body: Column(
         children: [
-          // HEADER
+          // Refined Header matching Figma design
           Container(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 16,
-              bottom: 16,
-              left: 20,
-              right: 20,
-            ),
+            padding:
+                const EdgeInsets.only(top: 50, bottom: 20, left: 20, right: 20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [geekGreen, geekDarkGreen],
               ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                const Text(
-                  '.CodeMap.',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
+                // Top bar - logo and logout
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '.CodeMap.',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _logout(context),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.logout,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white, size: 22),
-                  onPressed: () => _logout(context),
+                const SizedBox(height: 16),
+                // User greeting
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: _navigateToProfile,
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 2.5,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: _profileImageUrl.isEmpty
+                              ? Container(
+                                  color: geekLightGreen,
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                )
+                              : Image.memory(
+                                  base64Decode(_profileImageUrl),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: geekLightGreen,
+                                      child: const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 28,
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Welcome Back,',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w400,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$userName :3',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.2,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // CONTENT
+          // Main content
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Profile Section
-                  Row(
-                    children: [
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: geekDarkGreen,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            userName[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Hello, $userName! 👋',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Ready to know your career?',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
 
-                  const SizedBox(height: 24),
+                    // Badge Achievement card with rounded border
+                    _buildStatCard(
+                      icon: Icons.emoji_events,
+                      label: 'Badge and\nAchievement',
+                      value: '$_unlockedBadgesCount',
+                      color: geekGreen,
+                      onTap: _navigateToBadges,
+                    ),
 
-                  // SEARCH BAR with filter icon
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                    const SizedBox(height: 24),
+
+                    // Get Started section
+                    const Text(
+                      'Get Started',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: geekGreen,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Career Assessment with pulse animation - NO NAVIGATION
+                    ScaleTransition(
+                      scale: _pulseAnimation,
+                      child: GestureDetector(
+                        onTapDown: (_) =>
+                            setState(() => _isAssessmentPressed = true),
+                        onTapUp: (_) =>
+                            setState(() => _isAssessmentPressed = false),
+                        onTapCancel: () =>
+                            setState(() => _isAssessmentPressed = false),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [geekGreen, geekDarkGreen],
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            border: _isAssessmentPressed
+                                ? Border.all(color: Colors.white, width: 2)
+                                : null,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                                color: geekGreen.withOpacity(
+                                    _isAssessmentPressed ? 0.5 : 0.35),
+                                blurRadius: _isAssessmentPressed ? 20 : 15,
+                                offset: const Offset(0, 6),
                               ),
                             ],
                           ),
-                          child: TextField(
-                            onTap: () =>
-                                setState(() => _isSearchFocused = true),
-                            onSubmitted: (_) =>
-                                setState(() => _isSearchFocused = false),
-                            decoration: const InputDecoration(
-                              icon: Icon(Icons.search,
-                                  color: Colors.grey, size: 22),
-                              hintText: 'Search courses, tutorials...',
-                              hintStyle: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding:
-                                  EdgeInsets.symmetric(vertical: 12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: geekGreen,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: geekGreen.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.tune,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ACHIEVEMENTS CARD
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.emoji_events,
-                            color: Color(0xFF4CAF50), size: 32),
-                        SizedBox(width: 16),
-                        Text(
-                          '12',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF4CAF50),
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'Achievements',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // GET STARTED SECTION
-                  const Text(
-                    'Get Started',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // CAREER ASSESSMENT CARD
-                  ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(32),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [geekGreen, geekDarkGreen],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: geekGreen.withOpacity(0.4),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.25),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.explore,
-                              color: Colors.white,
-                              size: 36,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Career Assessment',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Discover your perfect IT career path',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Navigate to career assessment
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: geekGreen,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 28,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text(
-                                  'Start Assessment',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                          transform: _isAssessmentPressed
+                              ? Matrix4.identity().scaled(0.98)
+                              : Matrix4.identity(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Career Assessment',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                  letterSpacing: 0.3,
                                 ),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward, size: 18),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Start navigating your IT future.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: const [
+                                    Text(
+                                      'Get Started',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Icon(
+                                      Icons.arrow_forward,
+                                      color: Colors.black,
+                                      size: 18,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 100),
-                ],
+                    const SizedBox(height: 18),
+
+                    // Carousel slider
+                    _buildCarousel(),
+
+                    const SizedBox(height: 12),
+
+                    // Carousel indicators
+                    _buildCarouselIndicators(),
+                  ],
+                ),
               ),
             ),
           ),
         ],
       ),
+      bottomNavigationBar: SimpleBottomNavBar(
+        currentIndex: _selectedIndex,
+        onTap: _onBottomNavTap,
+      ),
+    );
+  }
 
-      // BOTTOM NAVIGATION BAR
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Container(
-            height: 70,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home, 0),
-                _buildNavItem(Icons.grid_view_rounded, 1),
-                _buildNavItem(Icons.access_time, 2),
-                _buildNavItem(Icons.person_outline, 3),
-              ],
-            ),
+  Widget _buildStatCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTapDown: (_) => setState(() => _isAchievementPressed = true),
+        onTapUp: (_) => setState(() => _isAchievementPressed = false),
+        onTapCancel: () => setState(() => _isAchievementPressed = false),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+                color: _isAchievementPressed ? Colors.white : color,
+                width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(_isAchievementPressed ? 0.25 : 0.12),
+                blurRadius: _isAchievementPressed ? 12 : 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          transform: _isAchievementPressed
+              ? Matrix4.identity().scaled(0.98)
+              : Matrix4.identity(),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_ios,
+                  color: Colors.white, size: 16),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, int index) {
-    final isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? geekGreen : Colors.grey.shade400,
-              size: 26,
-            ),
-            const SizedBox(height: 6),
-            if (isSelected)
-              Container(
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: geekGreen,
-                  shape: BoxShape.circle,
-                ),
-              )
-            else
-              const SizedBox(height: 5),
-          ],
-        ),
+  Widget _buildCarousel() {
+    return SizedBox(
+      height: 180,
+      child: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _carouselIndex = index;
+          });
+        },
+        children: [
+          _buildCarouselCard(
+            title: 'Career Assessment',
+            description:
+                'Complete three parts of the assessment to discover the IT career path that best matches your skills and background.',
+            icon: Icons.explore,
+            color: Colors.white,
+          ),
+          _buildCarouselCard(
+            title: 'Skill Development',
+            description:
+                'Track your progress and unlock achievements as you learn new programming skills.',
+            icon: Icons.trending_up,
+            color: Colors.white,
+          ),
+          _buildCarouselCard(
+            title: 'Career Resources',
+            description:
+                'Access curated learning materials and career guides tailored to your goals.',
+            icon: Icons.library_books,
+            color: Colors.white,
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildCarouselCard({
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Robot animation - smaller size
+          SizedBox(
+            width: 140,
+            height: 140,
+            child: Lottie.asset(
+              'assets/lottie/IQ-Practice.json',
+              fit: BoxFit.contain,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCarouselIndicators() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(3, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: _carouselIndex == index ? 28 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: _carouselIndex == index ? geekGreen : Colors.grey.shade700,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
     );
   }
 }
