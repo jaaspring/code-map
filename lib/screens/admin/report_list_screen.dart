@@ -20,11 +20,15 @@ class _ReportListScreenState extends State<ReportListScreen> {
   static const Color textSecondary = Color(0xFF666666);
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _searchController = TextEditingController();
 
   // List of all assessment attempts across all users
-  // Each item will contain the attempt data + user info
   List<Map<String, dynamic>> _allAttempts = [];
+  // Filtered list for display
+  List<Map<String, dynamic>> _filteredAttempts = [];
+  
   bool _isLoading = true;
+  String _sortBy = 'date_newest'; // date_newest, date_oldest, name_asc, name_desc
 
   // Track expanded state and loaded jobs for each assessment (keyed by testId)
   final Map<String, bool> _expandedStates = {};
@@ -35,6 +39,13 @@ class _ReportListScreenState extends State<ReportListScreen> {
   void initState() {
     super.initState();
     _loadAllUserAssessments();
+    _searchController.addListener(_filterAssessments);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAllUserAssessments() async {
@@ -67,13 +78,6 @@ class _ReportListScreenState extends State<ReportListScreen> {
         }
       }
 
-      // Sort by completedAt date (newest first)
-      loadedAttempts.sort((a, b) {
-        final dateA = DateTime.tryParse(a['completedAt'] ?? '') ?? DateTime(1970);
-        final dateB = DateTime.tryParse(b['completedAt'] ?? '') ?? DateTime(1970);
-        return dateB.compareTo(dateA);
-      });
-
       // Initialize expanded states
       for (final attempt in loadedAttempts) {
         final testId = attempt['testId'] ?? '';
@@ -87,6 +91,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
           _allAttempts = loadedAttempts;
           _isLoading = false;
         });
+        _filterAssessments(); // Initial filter/sort
       }
     } catch (e) {
       print('Error loading all assessments: $e');
@@ -96,6 +101,45 @@ class _ReportListScreenState extends State<ReportListScreen> {
         });
       }
     }
+  }
+
+  void _filterAssessments() {
+    final query = _searchController.text.toLowerCase();
+    
+    // 1. Filter
+    List<Map<String, dynamic>> temp = _allAttempts.where((attempt) {
+      final userInfo = attempt['userInfo'] as Map<String, dynamic>? ?? {};
+      final name = (userInfo['name'] ?? '').toString().toLowerCase();
+      final email = (userInfo['email'] ?? '').toString().toLowerCase();
+      return name.contains(query) || email.contains(query);
+    }).toList();
+
+    // 2. Sort
+    temp.sort((a, b) {
+      switch (_sortBy) {
+        case 'date_oldest':
+          final dateA = DateTime.tryParse(a['completedAt'] ?? '') ?? DateTime(1970);
+          final dateB = DateTime.tryParse(b['completedAt'] ?? '') ?? DateTime(1970);
+          return dateA.compareTo(dateB);
+        case 'name_asc':
+          final nameA = (a['userInfo']?['name'] ?? '').toString().toLowerCase();
+          final nameB = (b['userInfo']?['name'] ?? '').toString().toLowerCase();
+          return nameA.compareTo(nameB);
+        case 'name_desc':
+          final nameA = (a['userInfo']?['name'] ?? '').toString().toLowerCase();
+          final nameB = (b['userInfo']?['name'] ?? '').toString().toLowerCase();
+          return nameB.compareTo(nameA);
+        case 'date_newest':
+        default:
+          final dateA = DateTime.tryParse(a['completedAt'] ?? '') ?? DateTime(1970);
+          final dateB = DateTime.tryParse(b['completedAt'] ?? '') ?? DateTime(1970);
+          return dateB.compareTo(dateA);
+      }
+    });
+
+    setState(() {
+      _filteredAttempts = temp;
+    });
   }
 
   // Load jobs for a specific test
@@ -166,9 +210,6 @@ class _ReportListScreenState extends State<ReportListScreen> {
     }
   }
 
-  // Navigate to AssessmentReportScreen
-  // Note: CareerAnalysisReport might need updates if it strictly relies on current user auth,
-  // but usually passing userTestId is enough for fetching report data if the API allows it.
   void _navigateToAssessmentReport(
     BuildContext context,
     String userTestId,
@@ -251,7 +292,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
             children: [
               // Statistics / Header info
               Padding(
-                padding: const EdgeInsets.only(bottom: 20.0),
+                padding: const EdgeInsets.only(bottom: 16.0),
                 child: Row(
                   children: [
                     const Text(
@@ -263,7 +304,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${_allAttempts.length}',
+                      '${_allAttempts.length}', // Always show total, filter count can be inferred visually
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -274,6 +315,108 @@ class _ReportListScreenState extends State<ReportListScreen> {
                 ),
               ),
 
+              // Search and Filter Row
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: cardBackground,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(color: textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'Search by user or email...',
+                          hintStyle: TextStyle(color: textSecondary.withOpacity(0.7)),
+                          prefixIcon: const Icon(Icons.search, color: textSecondary),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, color: textSecondary),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    FocusScope.of(context).unfocus();
+                                  },
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: cardBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 1,
+                      ),
+                    ),
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.sort, color: geekGreen),
+                      tooltip: 'Sort By',
+                      color: cardBackground,
+                      onSelected: (String value) {
+                        setState(() {
+                          _sortBy = value;
+                          _filterAssessments();
+                        });
+                      },
+                      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                        PopupMenuItem<String>(
+                          value: 'date_newest',
+                          child: Text(
+                            'Newest First',
+                            style: TextStyle(
+                              color: _sortBy == 'date_newest' ? geekGreen : textPrimary,
+                            ),
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'date_oldest',
+                          child: Text(
+                            'Oldest First',
+                            style: TextStyle(
+                              color: _sortBy == 'date_oldest' ? geekGreen : textPrimary,
+                            ),
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem<String>(
+                          value: 'name_asc',
+                          child: Text(
+                            'Name (A-Z)',
+                            style: TextStyle(
+                              color: _sortBy == 'name_asc' ? geekGreen : textPrimary,
+                            ),
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'name_desc',
+                          child: Text(
+                            'Name (Z-A)',
+                            style: TextStyle(
+                              color: _sortBy == 'name_desc' ? geekGreen : textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
               // Content
               Expanded(
                 child: _isLoading
@@ -283,13 +426,13 @@ class _ReportListScreenState extends State<ReportListScreen> {
                           strokeWidth: 2,
                         ),
                       )
-                    : _allAttempts.isNotEmpty
+                    : _filteredAttempts.isNotEmpty
                         ? ListView.separated(
-                            itemCount: _allAttempts.length,
+                            itemCount: _filteredAttempts.length,
                             separatorBuilder: (context, index) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
-                              final attempt = _allAttempts[index];
+                              final attempt = _filteredAttempts[index];
                               final attemptNumber = attempt['attemptNumber'] ?? 0;
                               final testId = attempt['testId'] ?? '';
                               final completedAt = attempt['completedAt'] ?? '';
@@ -683,13 +826,13 @@ class _ReportListScreenState extends State<ReportListScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.assessment_outlined,
+                                  Icons.search_off,
                                   size: 64,
                                   color: textSecondary,
                                 ),
                                 SizedBox(height: 16),
                                 Text(
-                                  'No user reports found',
+                                  'No matching reports found',
                                   style: TextStyle(
                                     fontSize: 18,
                                     color: textSecondary,
