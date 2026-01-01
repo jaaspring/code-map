@@ -5,6 +5,7 @@ from models.firestore_models import (
     get_generated_questions,
     get_follow_up_answers_by_user,
     save_job_charts,
+    get_job_charts,
 )
 import matplotlib
 
@@ -140,6 +141,19 @@ def compute_and_save_charts_for_all_jobs(user_test_id: str, attempt_number: int)
     results = []
 
     for job in recommended_jobs:
+        # Check if charts already exist for this attempt
+        existing_charts = get_job_charts(rec_id, job["job_index"], attempt_number)
+        if existing_charts:
+            print(f"[DEBUG] Charts already exist for job {job['job_index']}, skipping generation.")
+            results.append(
+                {
+                    "rec_id": rec_id,
+                    "job_index": job["job_index"],
+                    "charts": existing_charts,
+                }
+            )
+            continue
+
         job_skills_raw = job.get("required_skills", {})
         user_skills_raw = user_data.get("skills", {})
 
