@@ -57,8 +57,10 @@ def submit_test(data: UserResponses):
         "skillReflection": data.skillReflection,
         "thesisFindings": data.thesisFindings,
         "careerGoals": data.careerGoals,
+        "careerGoals": data.careerGoals,
+        "testId": data.userTestId, # store it in doc for reference
     }
-    user_test_id = create_user_test(doc_data)
+    user_test_id = create_user_test(doc_data, data.userTestId)
     add_user_skills_knowledge(user_test_id, skills=[], knowledge=[])
     return {"message": "Data saved successfully", "id": user_test_id}
 
@@ -153,12 +155,18 @@ def create_follow_up_questions(user_test_id: str = Body(..., embed=True)):
 # -----------------------------
 # Retrieve generated follow-up questions
 # -----------------------------
-@router.post("/get-generated-questions/{user_test_id}")
+@router.post("/get-generated-questions")
 def get_all_generated_questions(request: dict):
     user_test_id = request.get("user_test_id")
     attempt_number = request.get("attempt_number", 1)
 
     questions = get_generated_questions(user_test_id, attempt_number)
+    
+    # Map question_type to category for frontend compatibility
+    for q in questions:
+        if "category" not in q and "question_type" in q:
+            q["category"] = q["question_type"]
+            
     return {"questions": questions}
 
 

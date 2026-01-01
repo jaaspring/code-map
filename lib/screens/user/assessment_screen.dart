@@ -2,7 +2,9 @@ import 'package:code_map/screens/educational_background_test/educational_backgro
 import 'package:flutter/material.dart';
 
 class AssessmentScreen extends StatelessWidget {
-  const AssessmentScreen({super.key});
+  final String? existingUserTestId;
+
+  const AssessmentScreen({super.key, this.existingUserTestId});
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +73,7 @@ class AssessmentScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            const EducationalBackgroundTestScreen(),
+                            EducationalBackgroundTestScreen(existingUserTestId: existingUserTestId),
                       ),
                     );
                   },

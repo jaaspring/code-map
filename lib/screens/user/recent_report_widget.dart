@@ -59,11 +59,29 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             
             if (currentAttempt != null) {
               _attemptNumber = currentAttempt['attemptNumber'];
-              print("DEBUG: Found attempt number in Firestore: $_attemptNumber");
+              // check status
+              if (currentAttempt['status'] != 'Completed') {
+                print("DEBUG: Assessment not completed. Status: ${currentAttempt['status']}");
+                setState(() {
+                  _errorMessage = null; // show 'no report' state instead of error
+                  _isLoading = false;
+                  _userTestId = null; // treat as no test for report
+                });
+                return;
+              }
             } else if (attempts.isNotEmpty) {
                final latest = attempts.last;
                _attemptNumber = latest['attemptNumber'];
-               print("DEBUG: Using latest attempt number: $_attemptNumber");
+               
+               if (latest['status'] != 'Completed') {
+                 print("DEBUG: Latest assessment not completed. Status: ${latest['status']}");
+                 setState(() {
+                  _errorMessage = null;
+                  _isLoading = false;
+                  _userTestId = null;
+                });
+                return;
+               }
             }
           }
         }

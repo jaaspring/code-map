@@ -221,21 +221,69 @@ def run_oss_validation(mcqs, chain):
         # format the request properly for the server
         mcqs_json = json.dumps(mcqs)
         prompt_text = f"Validate these MCQs: {mcqs_json}"
+        
+        print(f"[OSS DEBUG] Sending {len(mcqs)} MCQs for validation...")
 
         # send properly formatted request
         response = chain.run({"mcqs": prompt_text})
         validated = extract_json_from_response(response)
 
         if isinstance(validated, list) and validated:
+            # Check for differences between original and validated
+            if len(validated) != len(mcqs):
+                print(f"[OSS DEBUG] Question count changed: {len(mcqs)} -> {len(validated)}")
+            
+            # Compare each question for changes
+            changes_detected = False
+            for i, (original, validated_q) in enumerate(zip(mcqs, validated)):
+                if i < len(validated):
+                    # Check for changes in key fields
+                    changes = []
+                    
+                    if original.get('question') != validated_q.get('question'):
+                        changes.append(f"question: '{original.get('question')[:50]}...' → '{validated_q.get('question')[:50]}...'")
+                    
+                    if original.get('answer') != validated_q.get('answer'):
+                        changes.append(f"answer: {original.get('answer')} → {validated_q.get('answer')}")
+                    
+                    if original.get('difficulty') != validated_q.get('difficulty'):
+                        changes.append(f"difficulty: {original.get('difficulty')} → {validated_q.get('difficulty')}")
+                    
+                    # Check options
+                    orig_options = original.get('options', [])
+                    valid_options = validated_q.get('options', [])
+                    if orig_options != valid_options:
+                        # Check if options were reordered or changed
+                        if set(orig_options) != set(valid_options):
+                            changes.append("options modified")
+                        elif orig_options != valid_options:
+                            changes.append("options reordered")
+                    
+                    # Check for code changes in coding questions
+                    if original.get('category') == 'Coding':
+                        if original.get('code') != validated_q.get('code'):
+                            changes.append("code modified")
+                        if original.get('language') != validated_q.get('language'):
+                            changes.append(f"language: {original.get('language')} → {validated_q.get('language')}")
+                    
+                    if changes:
+                        changes_detected = True
+                        print(f"[OSS CORRECTION] Question {i+1} corrected:")
+                        for change in changes:
+                            print(f"  - {change}")
+            
+            if not changes_detected:
+                print("[OSS DEBUG] All questions passed validation without changes")
+            
+            print(f"[OSS SUCCESS] Validated {len(validated)} MCQs")
             return validated
-        print(
-            "[OSS WARNING] Validation returned empty or invalid, using original MCQs."
-        )
+        
+        print("[OSS WARNING] Validation returned empty or invalid, using original MCQs.")
         return mcqs
+    
     except Exception as e:
         print("[OSS ERROR] Exception during validation, using original MCQs:", e)
         return mcqs
-
 
 def generate_questions(skill_reflection: str, thesis_findings: str, career_goals: str):
     user_input = f"Skill Reflection: {skill_reflection}\nThesis Findings: {thesis_findings}\nCareer Goals: {career_goals}"

@@ -8,6 +8,7 @@ class UserResponses {
   String skillReflection;
   String thesisFindings;
   String careerGoals;
+  String? userTestId;
 
   UserResponses({
     this.educationLevel = '',
@@ -19,6 +20,7 @@ class UserResponses {
     this.skillReflection = '',
     this.thesisFindings = '',
     this.careerGoals = '',
+    this.userTestId,
     required Map<String, String> followUpAnswers,
   }) : programmingLanguages = programmingLanguages ?? [];
 
@@ -32,7 +34,25 @@ class UserResponses {
         "skillReflection": skillReflection,
         "thesisFindings": thesisFindings,
         "careerGoals": careerGoals,
+        "userTestId": userTestId,
       };
+
+  factory UserResponses.fromJson(Map<String, dynamic> json) {
+    return UserResponses(
+      educationLevel: json['educationLevel'] as String? ?? '',
+      cgpa: json['cgpa']?.toString() ?? '',
+      thesisTopic: json['thesisTopic'] as String? ?? '',
+      major: json['major'] as String? ?? '',
+      programmingLanguages:
+          (json['programmingLanguages'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      courseworkExperience: json['courseworkExperience'] as String? ?? '',
+      skillReflection: json['skillReflection'] as String? ?? '',
+      thesisFindings: json['thesisFindings'] as String? ?? '',
+      careerGoals: json['careerGoals'] as String? ?? '',
+      userTestId: json['userTestId'] as String?,
+      followUpAnswers: {}, // Initialize empty as it's not currently persisted in basic flow
+    );
+  }
 }
 
 // Global shared object

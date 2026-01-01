@@ -16,6 +16,7 @@ class UserResponses(BaseModel):
     skillReflection: Optional[str]
     thesisFindings: Optional[str]
     careerGoals: Optional[str]
+    userTestId: Optional[str] = None
 
 
 # -----------------------------

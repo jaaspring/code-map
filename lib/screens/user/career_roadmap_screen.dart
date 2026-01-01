@@ -288,6 +288,14 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
 
   // get icon container for job index
   Widget _getJobIndexIcon(int rank, double similarityPercentage) {
+    if (rank == 1) {
+      return Image.asset(
+        'assets/medal_first.png',
+        width: 56,
+        height: 56,
+        fit: BoxFit.contain,
+      );
+    }
     final color = _getSimilarityColor(similarityPercentage);
 
     return Container(

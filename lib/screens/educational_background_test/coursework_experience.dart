@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_responses.dart';
+import 'package:code_map/services/assessment_state_service.dart';
 import '../skill_reflection_test/skill_reflection_screen.dart';
 
 class CourseworkExperience extends StatefulWidget {
@@ -29,7 +31,7 @@ class _CourseworkExperienceState extends State<CourseworkExperience> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              // Header with back button and logo
+              // header with back button and logo
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -44,7 +46,21 @@ class _CourseworkExperienceState extends State<CourseworkExperience> {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48), // Balance for symmetric layout
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color(0xFFFFFFFF)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      AssessmentStateService.abandonAssessment(
+                        context: context,
+                        uid: user?.uid,
+                        userTestId: widget.userResponse.userTestId,
+                        draftData: widget.userResponse,
+                        currentStep: 'CourseworkExperience',
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
 
@@ -64,7 +80,7 @@ class _CourseworkExperienceState extends State<CourseworkExperience> {
 
               const SizedBox(height: 12),
 
-              // Subtitle with examples
+              // subtitle with examples
               Text(
                 'e.g., Final year project, Internship',
                 textAlign: TextAlign.center,
@@ -78,7 +94,7 @@ class _CourseworkExperienceState extends State<CourseworkExperience> {
 
               const SizedBox(height: 40),
 
-              // Experience level options
+              // experience level options
               Expanded(
                 child: ListView.builder(
                   itemCount: experiences.length,
@@ -127,7 +143,6 @@ class _CourseworkExperienceState extends State<CourseworkExperience> {
 
               const SizedBox(height: 20),
 
-              // Complete button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

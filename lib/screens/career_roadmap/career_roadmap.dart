@@ -29,7 +29,6 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
   bool isLoading = true;
   bool isLoadingJobs = true;
 
-  // Design constants
   static const Color geekGreen = Color(0xFF4BC945);
   static const Color backgroundColor = Color(0xFF000000);
   static const Color cardBackground = Color(0xFF121212);
@@ -45,26 +44,48 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
 
 
 
+  bool _isAssessmentIncomplete = false;
+
   @override
   void initState() {
     super.initState();
     currentJobIndex = widget.jobIndex;
-    _checkRetakeEligibility();
-    _loadData();
+    _checkStatusAndLoad();
   }
 
-  Future<void> _checkRetakeEligibility() async {
+  Future<void> _checkStatusAndLoad() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    // check retake eligibility (existing logic)
     _userAttempts = await RetakeService.getUserAttempts(user.uid);
     final daysUntil = RetakeService.daysUntilRetake(_userAttempts);
 
-    if (!mounted) return;
-    setState(() {
-      _daysUntilRetake = 0;
-      _canRetake = true;
-    });
+    // find the specific attempt for this view
+    final currentAttempt = _userAttempts.firstWhere(
+      (a) => a['testId'] == widget.userTestId,
+      orElse: () => null,
+    );
+
+    if (currentAttempt != null && currentAttempt['status'] != 'Completed') {
+      if (mounted) {
+        setState(() {
+          _isAssessmentIncomplete = true;
+          isLoading = false;
+          isLoadingJobs = false;
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _daysUntilRetake = 0; // logic for retake simplified here as per previous
+        _canRetake = true;
+      });
+      // only load data if completed
+      _loadData();
+    }
   }
 
   Future<void> _handleRetake() async {
@@ -291,7 +312,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       final results = await ApiService.getCareerRoadmap(
           widget.userTestId, currentJobIndex!);
 
-      // Check if there's an error message from backend
+      // check if there's an error message from backend
       if (results.containsKey('error')) {
         throw Exception(results['error']);
       }
@@ -475,7 +496,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
         child: DropdownButton<String>(
           value: currentJobIndex,
           isExpanded: true,
-          underline: const SizedBox(), // Remove default underline
+          underline: const SizedBox(), // remove default underline
           icon: const Icon(
             Icons.arrow_drop_down_rounded,
             color: textSecondary,
@@ -490,7 +511,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
           dropdownColor: cardBackground,
           onChanged: _onJobSelected,
           items: [
-            // Default hint item
+            // default hint item
             const DropdownMenuItem<String>(
               value: null,
               child: Text(
@@ -501,7 +522,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                 ),
               ),
             ),
-            // Career items
+            // career items
             ...recommendedJobs.map<DropdownMenuItem<String>>((job) {
               final jobIndex = job['job_index'];
               final jobTitle = job['job_title'];
@@ -555,6 +576,74 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
   }
 
   Widget _buildRoadmapContent() {
+    if (_isAssessmentIncomplete) {
+      return Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: cardBackground,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.pending_actions_rounded,
+                  size: 64,
+                  color: Colors.orange,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Assessment In Progress',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Please complete your assessment to generate your personalized career roadmap.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                   Navigator.of(context).pop(); // go back to home
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: geekGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Go to Home'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (isLoading) {
       return const Expanded(
         child: Center(
@@ -851,7 +940,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
       if (i < levelNames.length - 1) {
         levelWidgets.add(
           Container(
-            height: 50, // Longer arrow
+            height: 50,
             child: Center(
               child: Column(
                 children: [
@@ -963,7 +1052,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                   ),
                   child: Row(
                     children: [
-                      // Level indicator with number
+                      // level indicator with number
                       Container(
                         width: 32,
                         height: 32,
@@ -1039,7 +1128,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                 ),
                 const SizedBox(height: 20),
 
-                // Topics list with improved visual hierarchy
+                // topics list with improved visual hierarchy
                 if (topicsMap.isNotEmpty)
                   ...topicsMap.entries.map((entry) {
                     final topicName = entry.key;
@@ -1087,7 +1176,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Topic name with improved design
+            // topic name with improved design
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1115,7 +1204,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
                       ),
                       if (subTopics.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        // Subtopic list with arrow indicators
+                        // subtopic list with arrow indicators
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: subTopics
@@ -1172,7 +1261,7 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with back button and logo
+              // header with back button and logo
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

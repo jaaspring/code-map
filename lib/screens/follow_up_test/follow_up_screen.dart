@@ -1,3 +1,5 @@
+import 'package:code_map/services/assessment_state_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../../models/user_responses.dart';
 import '../../../../services/api_service.dart';
@@ -31,13 +33,12 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
   Future<void> _startFollowUp(BuildContext context) async {
     if (_isLoading) return;
 
+    final loadingMessageNotifier = ValueNotifier<String>("Initializing...");
+
     setState(() {
       _isLoading = true;
       _showWarning = false;
     });
-
-    String loadingMessage =
-        "Generating questions for attempt ${widget.attemptNumber}...";
 
     showDialog(
       context: context,
@@ -46,8 +47,8 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
         backgroundColor: const Color.fromARGB(255, 30, 30, 30),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: const Color.fromARGB(30, 255, 255, 255),
+          side: const BorderSide(
+            color: Color.fromARGB(30, 255, 255, 255),
             width: 1,
           ),
         ),
@@ -65,14 +66,19 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Text(
-                loadingMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                ),
+              ValueListenableBuilder<String>(
+                valueListenable: loadingMessageNotifier,
+                builder: (context, message, child) {
+                  return Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 10),
               Text(
@@ -90,17 +96,31 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     );
 
     try {
-      loadingMessage =
-          "Generating new questions for attempt ${widget.attemptNumber}...";
-      print("Generating new questions for attempt ${widget.attemptNumber}...");
+      // 1. Check for existing questions
+      loadingMessageNotifier.value = "Checking for existing questions...";
+      await Future.delayed(const Duration(milliseconds: 800)); // smooth UX
 
-      List<Map<String, dynamic>> questions = await ApiService.generateQuestions(
+      List<Map<String, dynamic>> questions =
+          await ApiService.getGeneratedQuestions(
         userTestId: widget.userTestId,
         attemptNumber: widget.attemptNumber,
       );
 
-      print(
-          "Generated ${questions.length} new questions for attempt ${widget.attemptNumber}");
+      if (questions.isNotEmpty) {
+        loadingMessageNotifier.value = "Retrieving existing questions...";
+        print("Found ${questions.length} existing questions.");
+        await Future.delayed(const Duration(milliseconds: 500));
+      } else {
+        // 2. Generate new if none exist
+        loadingMessageNotifier.value =
+            "Generating new questions for attempt ${widget.attemptNumber}...";
+        print("No existing questions. Generating new...");
+        
+        questions = await ApiService.generateQuestions(
+          userTestId: widget.userTestId,
+          attemptNumber: widget.attemptNumber,
+        );
+      }
 
       if (questions.isNotEmpty) {
         if (Navigator.canPop(context)) Navigator.pop(context);
@@ -127,7 +147,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
         SnackBar(
           backgroundColor: const Color.fromARGB(255, 30, 30, 30),
           content: Text(
-            "Error for attempt ${widget.attemptNumber}: ${e.toString()}",
+            "Error: ${e.toString()}",
             style: const TextStyle(color: Colors.white),
           ),
           duration: const Duration(seconds: 4),
@@ -136,6 +156,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
 
       setState(() => _showWarning = true);
     } finally {
+      loadingMessageNotifier.dispose();
       setState(() => _isLoading = false);
     }
   }
@@ -164,7 +185,21 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48),
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                        AssessmentStateService.abandonAssessment(
+                          context: context,
+                          uid: user?.uid,
+                          userTestId: widget.userTestId,
+                          draftData: widget.userResponse,
+                          currentStep: 'FollowUpScreen',
+                        );
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
 

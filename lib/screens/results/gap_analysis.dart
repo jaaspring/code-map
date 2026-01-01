@@ -90,31 +90,16 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
 
   Widget _buildTable(Map<String, dynamic> data, String title) {
     if (data.isEmpty) return const SizedBox.shrink();
+
     final entries = data.entries.toList();
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               children: [
-                Container(
-                  width: 4,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4BC945),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Text(
                   title,
                   style: const TextStyle(
@@ -129,10 +114,10 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
             const SizedBox(height: 16),
             Table(
               columnWidths: const {
-                0: FlexColumnWidth(2),
-                1: FlexColumnWidth(1),
-                2: FlexColumnWidth(1),
-                3: FlexColumnWidth(1),
+                0: FlexColumnWidth(1.8),
+                1: FlexColumnWidth(1.1),
+                2: FlexColumnWidth(1.1),
+                3: FlexColumnWidth(1.4), // increased for Status badge
               },
               border: TableBorder.all(color: Colors.white.withOpacity(0.1)),
               defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -165,15 +150,25 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
                                 color: Colors.grey))),
                     Padding(
                         padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        child: Text('Status',
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey))),
+                        child: Center( // Centered header for Status
+                            child: Text('Status',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey)))),
                   ],
                 ),
                 ...entries.map((e) {
-                  final status = e.value['status'] ?? '-';
+                  final value = e.value;
+                  final requiredLevel = value is Map
+                      ? (value['required_level'] ?? value['required'] ?? '-')
+                      : (value.toString());
+
+                  final userLevel =
+                      value is Map ? (value['user_level'] ?? '-') : '-';
+
+                  final status = value is Map ? (value['status'] ?? '-') : '-';
+
                   return TableRow(
                     children: [
                       Padding(
@@ -183,51 +178,51 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
                                   color: Colors.white, fontWeight: FontWeight.w500))),
                       Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Text(
-                              e.value['required_level'] ??
-                                  e.value['required'] ??
-                                  '-',
+                          child: Text(requiredLevel.toString(),
                               style: TextStyle(
                                   color: Colors.white.withOpacity(0.8),
                                   fontSize: 13))),
                       Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Text(e.value['user_level'] ?? '-',
+                          child: Text(userLevel.toString(),
                               style: TextStyle(
                                   color: Colors.white.withOpacity(0.8),
                                   fontSize: 13))),
                       Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: status == 'Achieved'
-                                ? const Color(0xFF4BC945).withOpacity(0.2)
-                                : status == 'Weak'
-                                    ? Colors.orange.withOpacity(0.2)
-                                    : Colors.red.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
+                        padding: const EdgeInsets.all(8.0), // reduced padding
+                        child: Center(
+                          child: Container(
+                            constraints: const BoxConstraints(minWidth: 60), // ensure min width
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4), // compacted padding
+                            decoration: BoxDecoration(
                               color: status == 'Achieved'
-                                  ? const Color(0xFF4BC945).withOpacity(0.5)
+                                  ? const Color(0xFF4BC945).withOpacity(0.15)
                                   : status == 'Weak'
-                                      ? Colors.orange.withOpacity(0.5)
-                                      : Colors.red.withOpacity(0.5),
-                              width: 1,
+                                      ? Colors.orange.withOpacity(0.15)
+                                      : Colors.red.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: status == 'Achieved'
+                                    ? const Color(0xFF4BC945).withOpacity(0.4)
+                                    : status == 'Weak'
+                                        ? Colors.orange.withOpacity(0.4)
+                                        : Colors.red.withOpacity(0.4),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            status,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: status == 'Achieved'
-                                  ? const Color(0xFF4BC945)
-                                  : status == 'Weak'
-                                      ? Colors.orange
-                                      : Colors.red,
-                              fontWeight: FontWeight.bold,
+                            child: Text(
+                              status.toString(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: status == 'Achieved'
+                                    ? const Color(0xFF4BC945)
+                                    : status == 'Weak'
+                                        ? Colors.orange
+                                        : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -237,8 +232,7 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
                 }),
               ],
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

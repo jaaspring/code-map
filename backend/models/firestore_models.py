@@ -6,14 +6,18 @@ from google.cloud.firestore_v1 import FieldFilter
 # -----------------------
 # UserTest
 # -----------------------
-def create_user_test(data: dict) -> str:
+def create_user_test(data: dict, user_test_id: str = None) -> str:
     """
     Create a new user test document.
     data keys: educationLevel, cgpa, thesisTopic, major, programmingLanguages,
                courseworkExperience, skillReflection, thesisFindings, careerGoals
     Returns the new document ID.
     """
-    user_ref = db.collection("user_tests").document()  # auto-ID
+    if user_test_id:
+        user_ref = db.collection("user_tests").document(user_test_id)
+    else:
+        user_ref = db.collection("user_tests").document()  # auto-ID
+        
     data["created_at"] = firestore.SERVER_TIMESTAMP
     user_ref.set(data)
     return user_ref.id

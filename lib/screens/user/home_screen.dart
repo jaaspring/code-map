@@ -3,7 +3,23 @@ import 'package:code_map/screens/user/assessment_screen.dart';
 import 'package:code_map/screens/user/career_roadmap_screen.dart';
 import 'package:code_map/screens/user/report_history.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:code_map/models/user_responses.dart';
+import 'package:code_map/screens/follow_up_test/follow_up_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:code_map/services/assessment_state_service.dart';
+import 'package:code_map/screens/educational_background_test/educational_background_screen.dart';
+import 'package:code_map/screens/educational_background_test/education_level.dart';
+import 'package:code_map/screens/educational_background_test/education_major.dart';
+import 'package:code_map/screens/educational_background_test/cgpa.dart';
+import 'package:code_map/screens/educational_background_test/coursework_experience.dart';
+import 'package:code_map/screens/educational_background_test/programming_languages.dart';
+import 'package:code_map/screens/educational_background_test/thesis_topic.dart';
+import 'package:code_map/screens/skill_reflection_test/skill_reflection_screen.dart';
+import 'package:code_map/screens/skill_reflection_test/skill_reflection_test.dart';
+import 'package:code_map/screens/skill_reflection_test/thesis_findings.dart';
+import 'package:code_map/screens/skill_reflection_test/career_goals.dart';
 import 'recent_report_widget.dart';
 
 class HomePage extends StatefulWidget {
@@ -51,6 +67,77 @@ class _HomePageState extends State<HomePage> {
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
+  }
+
+  void _resumeAssessment(BuildContext context, String testId, int attemptNumber) async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final draft = await AssessmentStateService.fetchDraft(testId);
+    
+    if (!mounted) return;
+    Navigator.pop(context); // Hide loading
+
+    if (draft != null) {
+      final responses = UserResponses.fromJson(draft['responses']);
+      final step = draft['currentStep'];
+
+      Widget nextScreen;
+      switch (step) {
+        case 'EducationalBackgroundTestScreen':
+          nextScreen = EducationalBackgroundTestScreen(existingUserTestId: testId);
+          break;
+        case 'EducationLevel':
+          nextScreen = EducationLevel(userResponse: responses);
+          break;
+        case 'EducationMajor':
+          nextScreen = EducationMajor(userResponse: responses);
+          break;
+        case 'Cgpa':
+          nextScreen = Cgpa(userResponse: responses);
+          break;
+        case 'CourseworkExperience':
+          nextScreen = CourseworkExperience(userResponse: responses);
+          break;
+        case 'ProgrammingLanguages':
+          nextScreen = ProgrammingLanguages(userResponse: responses);
+          break;
+        case 'ThesisTopic':
+          nextScreen = ThesisTopic(userResponse: responses);
+          break;
+        case 'SkillReflectionScreen':
+          nextScreen = SkillReflectionScreen(userResponse: responses);
+          break;
+        case 'SkillReflectionTest':
+          nextScreen = SkillReflectionTest(userResponse: responses);
+          break;
+        case 'ThesisFindings':
+          nextScreen = ThesisFindings(userResponse: responses);
+          break;
+        case 'CareerGoals':
+          nextScreen = CareerGoals(userResponse: responses);
+          break;
+        case 'FollowUpScreen':
+        case 'FollowUpTest':
+             nextScreen = FollowUpScreen(userResponse: responses, userTestId: testId, attemptNumber: attemptNumber); 
+             break;
+        default:
+          nextScreen = AssessmentScreen(existingUserTestId: testId);
+      }
+      Navigator.push(context, MaterialPageRoute(builder: (_) => nextScreen));
+    } else {
+      // Fallback if no draft found but we have an ID
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AssessmentScreen(existingUserTestId: testId),
+        ),
+      );
+    }
   }
 
   Widget _getContentForTab(int index) {
@@ -244,37 +331,78 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          const AssessmentScreen()),
-                                );
+                            StreamBuilder<DocumentSnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(_auth.currentUser?.uid)
+                                  .snapshots(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  return const SizedBox();
+                                }
+
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
+
+                                final data = snapshot.data?.data() as Map<String, dynamic>?;
+                                final attempts = data?['assessmentAttempts'] as List<dynamic>? ?? [];
+
+                                bool canResume = false;
+                                Map<String, dynamic>? pendingAttempt;
+                                int attemptNumber = 1;
+
+                                if (attempts.isNotEmpty) {
+                                  final lastAttempt = attempts.last;
+                                  final status = lastAttempt['status'];
+                                  if (status == 'Abandoned' || status == 'In progress') {
+                                    canResume = true;
+                                    pendingAttempt = lastAttempt;
+                                    attemptNumber = attempts.length;
+                                  }
+                                }
+                                
+                                return SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (canResume && pendingAttempt != null) {
+                                    // Resume logic - Fetch draft and navigate
+                                    final testId = pendingAttempt['testId'];
+                                    _resumeAssessment(context, testId, attemptNumber);
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              const AssessmentScreen()),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: geekGreen,
+                                  foregroundColor: textPrimary,
+                                  elevation: 0,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  canResume ? 'Resume Assessment' : 'Start Assessment',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            );
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: geekGreen,
-                                foregroundColor: textPrimary,
-                                elevation: 0,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Start Assessment',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
                             ),
-                          ),
+
                         ],
                       ),
                     ),

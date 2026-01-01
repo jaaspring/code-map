@@ -1,5 +1,7 @@
 import 'package:code_map/screens/skill_reflection_test/skill_reflection_test.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:code_map/services/assessment_state_service.dart';
 import '../../models/user_responses.dart';
 
 class SkillReflectionScreen extends StatelessWidget {
@@ -31,7 +33,21 @@ class SkillReflectionScreen extends StatelessWidget {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48),
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      AssessmentStateService.abandonAssessment(
+                        context: context,
+                        uid: user?.uid,
+                        userTestId: userResponse.userTestId,
+                        draftData: userResponse,
+                        currentStep: 'SkillReflectionScreen',
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
 

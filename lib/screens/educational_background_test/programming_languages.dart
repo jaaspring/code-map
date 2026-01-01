@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_responses.dart';
+import 'package:code_map/services/assessment_state_service.dart';
 import 'coursework_experience.dart';
 
 class ProgrammingLanguages extends StatefulWidget {
@@ -65,7 +67,21 @@ class _ProgrammingLanguagesState extends State<ProgrammingLanguages> {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48), // Balance for symmetric layout
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color(0xFFFFFFFF)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      AssessmentStateService.abandonAssessment(
+                        context: context,
+                        uid: user?.uid,
+                        userTestId: widget.userResponse.userTestId,
+                        draftData: widget.userResponse,
+                        currentStep: 'ProgrammingLanguages',
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
 

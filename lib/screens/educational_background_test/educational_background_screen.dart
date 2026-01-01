@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:code_map/services/assessment_state_service.dart';
 import 'education_level.dart';
 import '../../models/user_responses.dart';
 
 class EducationalBackgroundTestScreen extends StatelessWidget {
-  const EducationalBackgroundTestScreen({super.key});
+  final String? existingUserTestId;
+
+  const EducationalBackgroundTestScreen({super.key, this.existingUserTestId});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +33,26 @@ class EducationalBackgroundTestScreen extends StatelessWidget {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48),
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (existingUserTestId != null) {
+                        AssessmentStateService.abandonAssessment(
+                          context: context,
+                          uid: user?.uid,
+                          userTestId: existingUserTestId,
+                          // No draft data needed here as we haven't started answering
+                        );
+                      } else {
+                        // If no ID exists (fresh start) and we abandon early, 
+                        // just go back. Don't create an "Abandoned" record yet.
+                        Navigator.pop(context);
+                      }
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
 
@@ -72,7 +95,7 @@ class EducationalBackgroundTestScreen extends StatelessWidget {
                     // initialize empty response object to track user's progress
                     // this object will be passed through all test screens
                     UserResponses userResponse =
-                        UserResponses(followUpAnswers: {});
+                        UserResponses(followUpAnswers: {}, userTestId: existingUserTestId);
 
                     // navigate to education level selection screen
                     // pass the response object to collect user inputs

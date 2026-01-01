@@ -1,6 +1,8 @@
 import 'package:code_map/screens/skill_reflection_test/career_goals.dart';
 import 'package:code_map/screens/skill_reflection_test/thesis_findings.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:code_map/services/assessment_state_service.dart';
 import '../../models/user_responses.dart';
 
 class SkillReflectionTest extends StatefulWidget {
@@ -103,7 +105,21 @@ class _SkillReflectionTestState extends State<SkillReflectionTest> {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48),
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      AssessmentStateService.abandonAssessment(
+                        context: context,
+                        uid: user?.uid,
+                        userTestId: widget.userResponse.userTestId,
+                        draftData: widget.userResponse,
+                        currentStep: 'SkillReflectionTest',
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
               const SizedBox(height: 32),

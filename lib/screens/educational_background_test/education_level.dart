@@ -1,5 +1,7 @@
 import 'package:code_map/screens/educational_background_test/thesis_topic.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:code_map/services/assessment_state_service.dart';
 import '../../models/user_responses.dart';
 import 'cgpa.dart';
 
@@ -33,7 +35,7 @@ class _EducationLevelState extends State<EducationLevel> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              // Header with back button and logo
+              // header with back button and logo
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -48,7 +50,21 @@ class _EducationLevelState extends State<EducationLevel> {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48), // Balance for symmetric layout
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color(0xFFFFFFFF)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      AssessmentStateService.abandonAssessment(
+                        context: context,
+                        uid: user?.uid,
+                        userTestId: widget.userResponse.userTestId,
+                        draftData: widget.userResponse,
+                        currentStep: 'EducationLevel',
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
 
@@ -67,7 +83,6 @@ class _EducationLevelState extends State<EducationLevel> {
               ),
               const SizedBox(height: 40),
 
-              // Education level options
               Expanded(
                 child: ListView.builder(
                   itemCount: levels.length,
@@ -116,7 +131,6 @@ class _EducationLevelState extends State<EducationLevel> {
 
               const SizedBox(height: 20),
 
-              // Next button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_responses.dart';
+import 'package:code_map/services/assessment_state_service.dart';
 import 'education_major.dart';
 
 class Cgpa extends StatefulWidget {
@@ -29,7 +31,7 @@ class _CgpaState extends State<Cgpa> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              // Header with back button and logo
+              // header with back button and logo
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -44,13 +46,26 @@ class _CgpaState extends State<Cgpa> {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48), // Balance for symmetric layout
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color(0xFFFFFFFF)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      AssessmentStateService.abandonAssessment(
+                        context: context,
+                        uid: user?.uid,
+                        userTestId: widget.userResponse.userTestId,
+                        draftData: widget.userResponse,
+                        currentStep: 'Cgpa',
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
 
               const SizedBox(height: 40),
 
-              // Title
               const Text(
                 'What is your current CGPA?',
                 textAlign: TextAlign.center,
@@ -65,7 +80,6 @@ class _CgpaState extends State<Cgpa> {
 
               const SizedBox(height: 40),
 
-              // CGPA Input Field
               Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: 20,
@@ -100,7 +114,6 @@ class _CgpaState extends State<Cgpa> {
 
               const Spacer(),
 
-              // Next button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

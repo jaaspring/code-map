@@ -1,3 +1,5 @@
+import 'package:code_map/services/assessment_state_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:code_map/screens/results/career_recommendations.dart';
 import 'package:flutter/material.dart';
 import 'package:code_map/models/follow_up_responses.dart';
@@ -239,63 +241,65 @@ class _FollowUpTestState extends State<FollowUpTest> {
 
                 Container(
                   padding: const EdgeInsets.only(top: 0, bottom: 0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Line numbers column - Light gray background
-                      Container(
-                        width: 50,
-                        padding:
-                            const EdgeInsets.only(top: 8, bottom: 8, right: 12),
-                        decoration: const BoxDecoration(
-                          color: Color(
-                              0xFF2D2D2D), // Light gray background for line numbers
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: List.generate(
-                            lineCount,
-                            (index) => Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 3.5),
-                              child: Text(
-                                '${index + 1}',
-                                style: const TextStyle(
-                                  fontFamily: 'GoogleSansCode',
-                                  fontSize: 14,
-                                  color:
-                                      Color(0xFF858585), // Medium gray numbers
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Line numbers column - Light gray background
+                        Container(
+                          width: 50,
+                          padding:
+                              const EdgeInsets.only(top: 8, bottom: 8, right: 12),
+                          decoration: const BoxDecoration(
+                            color: Color(
+                                0xFF2D2D2D), // Light gray background for line numbers
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: List.generate(
+                              lineCount,
+                              (index) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 3.5),
+                                child: Text(
+                                  '${index + 1}',
+                                  style: const TextStyle(
+                                    fontFamily: 'GoogleSansCode',
+                                    fontSize: 14,
+                                    color:
+                                        Color(0xFF858585), // Medium gray numbers
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-
-                      // Code content
-                      Expanded(
-                        child: Container(
-                          color: const Color(
-                              0xFF1E1E1E), // Dark background for code
-                          child: SingleChildScrollView(
-                            child: Container(
-                              padding: const EdgeInsets.only(
-                                  top: 8, bottom: 8, left: 16, right: 16),
-                              child: SelectableText(
-                                code,
-                                style: const TextStyle(
-                                  fontFamily: 'GoogleSansCode',
-                                  fontSize: 14,
-                                  color:
-                                      Color(0xFFD4D4D4), // Light gray code text
-                                  height: 1.6,
+  
+                        // Code content
+                        Expanded(
+                          child: Container(
+                            color: const Color(
+                                0xFF1E1E1E), // Dark background for code
+                            child: SingleChildScrollView(
+                              child: Container(
+                                padding: const EdgeInsets.only(
+                                    top: 8, bottom: 8, left: 16, right: 16),
+                                child: SelectableText(
+                                  code,
+                                  style: const TextStyle(
+                                    fontFamily: 'GoogleSansCode',
+                                    fontSize: 14,
+                                    color:
+                                        Color(0xFFD4D4D4), // Light gray code text
+                                    height: 1.6,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -421,55 +425,57 @@ class _FollowUpTestState extends State<FollowUpTest> {
               ),
               Container(
                 padding: const EdgeInsets.only(top: 0, bottom: 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 50,
-                      padding:
-                          const EdgeInsets.only(top: 8, bottom: 8, right: 12),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2D2D2D),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: List.generate(
-                          lineCount,
-                          (index) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 3.5),
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                fontFamily: 'GoogleSansCode',
-                                fontSize: 14,
-                                color: Color(0xFF858585),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: 50,
+                        padding:
+                            const EdgeInsets.only(top: 8, bottom: 8, right: 12),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2D2D2D),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: List.generate(
+                            lineCount,
+                            (index) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 3.5),
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  fontFamily: 'GoogleSansCode',
+                                  fontSize: 14,
+                                  color: Color(0xFF858585),
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        color: const Color(0xFF1E1E1E),
-                        child: SingleChildScrollView(
-                          child: Container(
-                            padding: const EdgeInsets.only(
-                                top: 8, bottom: 8, left: 16, right: 16),
-                            child: SelectableText(
-                              codeContent,
-                              style: const TextStyle(
-                                fontFamily: 'GoogleSansCode',
-                                fontSize: 14,
-                                color: Color(0xFFD4D4D4),
-                                height: 1.6,
+                      Expanded(
+                        child: Container(
+                          color: const Color(0xFF1E1E1E),
+                          child: SingleChildScrollView(
+                            child: Container(
+                              padding: const EdgeInsets.only(
+                                  top: 8, bottom: 8, left: 16, right: 16),
+                              child: SelectableText(
+                                codeContent,
+                                style: const TextStyle(
+                                  fontFamily: 'GoogleSansCode',
+                                  fontSize: 14,
+                                  color: Color(0xFFD4D4D4),
+                                  height: 1.6,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -585,19 +591,25 @@ class _FollowUpTestState extends State<FollowUpTest> {
                         ),
                       ),
                     ),
-                    SizedBox(
-                      width: 48,
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          "${_currentIndex + 1}/${widget.questions.length}",
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color.fromARGB(136, 255, 255, 255),
-                          ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.exit_to_app_rounded,
+                              color: Color.fromARGB(255, 255, 255, 255)),
+                          onPressed: () {
+                            final user = FirebaseAuth.instance.currentUser;
+                            AssessmentStateService.abandonAssessment(
+                              context: context,
+                              uid: user?.uid,
+                              userTestId: widget.userTestId,
+                              draftData: widget.userResponse,
+                              currentStep: 'FollowUpTest',
+                            );
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -754,6 +766,19 @@ class _FollowUpTestState extends State<FollowUpTest> {
                         ),
                         const SizedBox(height: 20),
                       ],
+                    ),
+                  ),
+                ),
+
+                // Progress Label
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    "Question ${_currentIndex + 1} of ${widget.questions.length}",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.5),
                     ),
                   ),
                 ),

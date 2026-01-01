@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_responses.dart';
 import '../../services/api_service.dart';
+import '../../services/assessment_state_service.dart';
 import '../follow_up_test/follow_up_screen.dart';
 
 class CareerGoals extends StatefulWidget {
@@ -48,8 +49,9 @@ class _CareerGoalsState extends State<CareerGoals> {
         await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
     int attemptNumber = 1;
+    List<dynamic> attempts = [];
     if (userDoc.exists) {
-      final attempts = userDoc.data()?['assessmentAttempts'] as List? ?? [];
+      attempts = List.from(userDoc.data()?['assessmentAttempts'] as List? ?? []);
       attemptNumber = attempts.length + 1;
     }
 
@@ -83,20 +85,55 @@ class _CareerGoalsState extends State<CareerGoals> {
 
     try {
       widget.userResponse.careerGoals = _controller.text;
+      
+      // Assume we use the existing ID if available
+      final existingId = widget.userResponse.userTestId;
+      
+      // Call backend to save test data (UserResponses)
+      // This returns the test ID (same as existingId if provided)
       final userTestId = await ApiService.submitTest(widget.userResponse);
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'userTestId': userTestId,
-        'assessmentAttempts': FieldValue.arrayUnion([
-          {
-            'attemptNumber': attemptNumber,
-            'testId': userTestId,
-            'completedAt': DateTime.now().toIso8601String(),
-            'status': 'In progress'
+      // Now determine if we update the user's attempt list or add new
+      int existingIndex = -1;
+      
+      if (existingId != null) {
+        for (int i = 0; i < attempts.length; i++) {
+          if (attempts[i]['testId'] == existingId) {
+            existingIndex = i;
+            break;
           }
-        ]),
-        'testIds': FieldValue.arrayUnion([userTestId])
-      });
+        }
+      }
+
+      if (existingIndex != -1) {
+        // UPDATE existing attempt
+        final attempt = Map<String, dynamic>.from(attempts[existingIndex]);
+        attempt['status'] = 'In progress'; // Update status
+        attempt['completedAt'] = DateTime.now().toIso8601String(); // Update timestamp
+        attemptNumber = attempt['attemptNumber']; // Keep existing attempt number
+        
+        attempts[existingIndex] = attempt;
+        
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'assessmentAttempts': attempts,
+          'userTestId': userTestId, // Ensure this is current
+        });
+      } else {
+        // CREATE new attempt
+        // If we didn't find it (or fresh start), we append
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'userTestId': userTestId,
+          'assessmentAttempts': FieldValue.arrayUnion([
+            {
+              'attemptNumber': attemptNumber,
+              'testId': userTestId,
+              'completedAt': DateTime.now().toIso8601String(),
+              'status': 'In progress'
+            }
+          ]),
+          'testIds': FieldValue.arrayUnion([userTestId])
+        });
+      }
 
       Navigator.push(
         context,
@@ -145,7 +182,22 @@ class _CareerGoalsState extends State<CareerGoals> {
                     height: 18,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: 48),
+                  IconButton(
+                    icon: const Icon(Icons.exit_to_app_rounded,
+                        color: Color.fromARGB(255, 255, 255, 255)),
+                    onPressed: () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      widget.userResponse.careerGoals = _controller.text; // Update model with text
+                      AssessmentStateService.abandonAssessment(
+                        context: context,
+                        uid: user?.uid,
+                        userTestId: widget.userResponse.userTestId,
+                        draftData: widget.userResponse,
+                        currentStep: 'CareerGoals',
+                      );
+                    },
+                    padding: EdgeInsets.zero,
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
