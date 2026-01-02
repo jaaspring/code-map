@@ -88,7 +88,26 @@ class _CareerGoalsState extends State<CareerGoals> {
       
       final existingId = widget.userResponse.userTestId;
       
-      final userTestId = await ApiService.submitTest(widget.userResponse);
+      String userTestId = await ApiService.submitTest(widget.userResponse);
+      
+      if (userTestId == "null" || userTestId == "N/A" || userTestId.isEmpty) {
+        if (widget.userResponse.userTestId != null && widget.userResponse.userTestId!.isNotEmpty) {
+          userTestId = widget.userResponse.userTestId!;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error: Could not generate test ID. (Response: $userTestId)"),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          setState(() => _isSubmitting = false);
+          return;
+        }
+      }
+
+      // update the model immediately
+      widget.userResponse.userTestId = userTestId;
 
       int existingIndex = -1;
       
@@ -105,17 +124,16 @@ class _CareerGoalsState extends State<CareerGoals> {
         final attempt = Map<String, dynamic>.from(attempts[existingIndex]);
         attempt['status'] = 'In progress';
         attempt['completedAt'] = DateTime.now().toIso8601String();
-        attemptNumber = attempt['attemptNumber'];
+        // Don't overwrite attemptNumber if it exists
         
         attempts[existingIndex] = attempt;
         
         await FirebaseFirestore.instance.collection('users').doc(uid).update({
           'assessmentAttempts': attempts,
-          'userTestId': userTestId, // Ensure this is current
+          'userTestId': userTestId,
         });
       } else {
         // CREATE new attempt
-        // If we didn't find it (or fresh start), we append
         await FirebaseFirestore.instance.collection('users').doc(uid).update({
           'userTestId': userTestId,
           'assessmentAttempts': FieldValue.arrayUnion([

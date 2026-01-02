@@ -57,8 +57,7 @@ def submit_test(data: UserResponses):
         "skillReflection": data.skillReflection,
         "thesisFindings": data.thesisFindings,
         "careerGoals": data.careerGoals,
-        "careerGoals": data.careerGoals,
-        "testId": data.userTestId, # store it in doc for reference
+
     }
     user_test_id = create_user_test(doc_data, data.userTestId)
     add_user_skills_knowledge(user_test_id, skills=[], knowledge=[])
