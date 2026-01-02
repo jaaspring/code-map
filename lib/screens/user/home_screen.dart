@@ -11,6 +11,7 @@ import 'assessment_screen.dart';
 import 'career_roadmap_screen.dart';
 import 'report_history.dart';
 import 'recent_report_widget.dart';
+import '../../services/badge_service.dart';
 import '../../models/user_responses.dart';
 import '../../services/assessment_state_service.dart';
 import '../follow_up_test/follow_up_screen.dart';
@@ -93,6 +94,22 @@ class _HomePageState extends State<HomePage>
             _name = data?['name'] ?? '';
             _unlockedBadgesCount = badges.length;
           });
+
+          // Increment appOpens counter
+          await _firestore.collection('users').doc(user.uid).update({
+            'appOpens': FieldValue.increment(1),
+          });
+
+          // Trigger app_open badge check
+          final newBadges =
+              await BadgeService.checkAndAwardBadge(trigger: 'app_open');
+          if (newBadges.isNotEmpty && mounted) {
+            BadgeService.showBadgeDialog(context, newBadges);
+            // Refresh count
+            setState(() {
+              _unlockedBadgesCount += newBadges.length;
+            });
+          }
         }
       } catch (e) {
         print('Error fetching profile data: $e');
@@ -242,356 +259,182 @@ class _HomePageState extends State<HomePage>
   Widget _getContentForTab(int index) {
     switch (index) {
       case 0:
-        // Case 0: The existing "Home" content
-        return Column(
-          children: [
-            // Refined Header matching Figma design
-            Container(
-              padding: const EdgeInsets.only(
-                  top: 50, bottom: 20, left: 20, right: 20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [geekGreen, geekDarkGreen],
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                children: [
-                  // Top bar - logo and logout
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        '.CodeMap.',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _logout(context),
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            child: const Icon(
-                              Icons.logout,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // User greeting
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: _navigateToProfile,
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2.5,
-                            ),
-                          ),
-                          child: ClipOval(
-                            child: _profileImageUrl.isEmpty
-                                ? Container(
-                                    color: geekLightGreen,
-                                    child: const Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 28,
-                                    ),
-                                  )
-                                : Image.memory(
-                                    base64Decode(_profileImageUrl),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: geekLightGreen,
-                                        child: const Icon(
-                                          Icons.person,
-                                          color: Colors.white,
-                                          size: 28,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Welcome Back,',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w400,
-                                height: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '$userName :3',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                height: 1.2,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+        return StreamBuilder<DocumentSnapshot>(
+          stream: _firestore.collection('users').doc(_auth.currentUser?.uid).snapshots(),
+          builder: (context, snapshot) {
+            String displayName = _name;
+            int badgeCount = _unlockedBadgesCount;
+            String photoUrl = _profileImageUrl;
+            bool canResume = false;
+            Map<String, dynamic>? pendingAttempt;
+            int attemptNumber = 1;
 
-            // Main content
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
+            if (snapshot.hasData && snapshot.data!.exists) {
+              final data = snapshot.data!.data() as Map<String, dynamic>?;
+              displayName = data?['name'] ?? _name;
+              photoUrl = data?['photoUrl'] ?? '';
+              
+              final badges = List.from(data?['badges'] ?? []);
+              badgeCount = badges.length;
+
+              final attempts = data?['assessmentAttempts'] as List<dynamic>? ?? [];
+              if (attempts.isNotEmpty) {
+                // Find most recent
+                final sortedAttempts = List.from(attempts);
+                sortedAttempts.sort((a, b) {
+                  String? dateA = a['completedAt'];
+                  String? dateB = b['completedAt'];
+                  if (dateA == null) return -1;
+                  if (dateB == null) return 1;
+                  return DateTime.parse(dateA).compareTo(DateTime.parse(dateB));
+                });
+                
+                final lastAttempt = sortedAttempts.last;
+                final status = lastAttempt['status'];
+                if (status == 'Abandoned' || status == 'In progress') {
+                  canResume = true;
+                  pendingAttempt = lastAttempt;
+                  attemptNumber = lastAttempt['attemptNumber'] ?? attempts.length;
+                }
+              }
+            }
+
+            return Column(
+              children: [
+                // Header (logo, profile pic, greeting)
+                Container(
+                  padding: const EdgeInsets.only(top: 50, bottom: 20, left: 20, right: 20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [geekGreen, geekDarkGreen],
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 4),
-
-                      // Badge Achievement card with rounded border
-                      _buildStatCard(
-                        icon: Icons.emoji_events,
-                        label: 'Badge and\nAchievement',
-                        value: '$_unlockedBadgesCount',
-                        color: geekGreen,
-                        onTap: _navigateToBadges,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('.CodeMap.', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                          IconButton(icon: const Icon(Icons.logout, color: Colors.white), onPressed: () => _logout(context)),
+                        ],
                       ),
-
-                      const SizedBox(height: 24),
-
-                      // Get Started section
-                      const Text(
-                        'Get Started',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: geekGreen,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // Career Assessment with pulse animation
-                      StreamBuilder<DocumentSnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(_auth.currentUser?.uid)
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          bool canResume = false;
-                          Map<String, dynamic>? pendingAttempt;
-                          int attemptNumber = 1;
-
-                          if (snapshot.hasData && snapshot.data!.exists) {
-                            final data = snapshot.data!.data() as Map<String, dynamic>?;
-                            final attempts = data?['assessmentAttempts'] as List<dynamic>? ?? [];
-
-                            if (attempts.isNotEmpty) {
-                              // Sort by completedAt to find the latest
-                                attempts.sort((a, b) {
-                                  String? dateA = a['completedAt'];
-                                  String? dateB = b['completedAt'];
-                                  if (dateA == null) return -1;
-                                  if (dateB == null) return 1;
-                                  return DateTime.parse(dateA).compareTo(DateTime.parse(dateB));
-                                });
-                                
-                              final lastAttempt = attempts.last;
-                              final status = lastAttempt['status'];
-                              if (status == 'Abandoned' || status == 'In progress') {
-                                canResume = true;
-                                pendingAttempt = lastAttempt;
-                                attemptNumber = lastAttempt['attemptNumber'] ?? attempts.length;
-                              }
-                              // If specific logic dictates attemptNumber is count + 1 for new, but here we resume existing
-                            }
-                          }
-
-                          String cardTitle = canResume ? 'Resume Assessment' : 'Career Assessment';
-                          String cardDesc = canResume 
-                              ? 'Continue where you left off.' 
-                              : 'Start navigating your IT future.';
-                          String btnText = canResume ? 'Resume' : 'Get Started';
-
-                          return ScaleTransition(
-                            scale: _pulseAnimation,
-                            child: GestureDetector(
-                              onTap: () {
-                                if (canResume && pendingAttempt != null) {
-                                  final testId = pendingAttempt['testId'];
-                                  _resumeAssessment(context, testId, attemptNumber);
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const AssessmentScreen(),
-                                    ),
-                                  );
-                                }
-                              },
-                              onTapDown: (_) =>
-                                  setState(() => _isAssessmentPressed = true),
-                              onTapUp: (_) =>
-                                  setState(() => _isAssessmentPressed = false),
-                              onTapCancel: () =>
-                                  setState(() => _isAssessmentPressed = false),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 150),
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [geekGreen, geekDarkGreen],
-                                  ),
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: _isAssessmentPressed
-                                      ? Border.all(color: Colors.white, width: 2)
-                                      : null,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: geekGreen.withOpacity(
-                                          _isAssessmentPressed ? 0.5 : 0.35),
-                                      blurRadius: _isAssessmentPressed ? 20 : 15,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                transform: _isAssessmentPressed
-                                    ? Matrix4.identity().scaled(0.98)
-                                    : Matrix4.identity(),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      cardTitle,
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      cardDesc,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.black87,
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 12,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(25),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.max,
-                                        children: [
-                                          Text(
-                                            btnText,
-                                            style: const TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Icon(
-                                            Icons.arrow_forward,
-                                            color: Colors.black,
-                                            size: 18,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: _navigateToProfile,
+                            child: Container(
+                              width: 50, height: 50,
+                              decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white, border: Border.all(color: Colors.white, width: 2.5)),
+                              child: ClipOval(
+                                child: photoUrl.isEmpty
+                                    ? Container(color: geekLightGreen, child: const Icon(Icons.person, color: Colors.white, size: 28))
+                                    : Image.memory(base64Decode(photoUrl), fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: geekLightGreen, child: const Icon(Icons.person, color: Colors.white, size: 28))),
                               ),
                             ),
-                          );
-                        }
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Welcome Back,', style: TextStyle(fontSize: 13, color: Colors.white70)),
+                                Text(displayName.isEmpty ? 'User' : displayName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white), overflow: TextOverflow.ellipsis),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-
-                      const SizedBox(height: 18),
-
-                      // Carousel slider
-                      _buildCarousel(),
-
-                      const SizedBox(height: 12),
-
-                      // Carousel indicators
-                      _buildCarouselIndicators(),
-
-                      const SizedBox(height: 24),
-
-                      // Recent Report Section
-                      const Text(
-                        'Recent Report',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: geekGreen,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      const RecentReportWidget(),
-
-                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
-              ),
-            ),
-          ],
+                
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildStatCard(
+                          imagePath: 'assets/icons/main-badges-icon.png',
+                          label: 'Badge and\nAchievement',
+                          value: '$badgeCount',
+                          color: geekGreen,
+                          onTap: _navigateToBadges,
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Get Started', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: geekGreen)),
+                        const SizedBox(height: 14),
+                        
+                        // Assessment Card
+                        ScaleTransition(
+                          scale: _pulseAnimation,
+                          child: GestureDetector(
+                            onTap: () {
+                              if (canResume && pendingAttempt != null) {
+                                _resumeAssessment(context, pendingAttempt['testId'], attemptNumber);
+                              } else {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const AssessmentScreen()));
+                              }
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(colors: [geekGreen, geekDarkGreen]),
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [BoxShadow(color: geekGreen.withOpacity(0.35), blurRadius: 15, offset: const Offset(0, 6))],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(canResume ? 'Resume Assessment' : 'Career Assessment', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
+                                  const SizedBox(height: 6),
+                                  Text(canResume ? 'Continue where you left off.' : 'Start navigating your IT future.', style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(canResume ? 'Resume' : 'Get Started', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                        const SizedBox(width: 8),
+                                        const Icon(Icons.arrow_forward, color: Colors.black, size: 18),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 18),
+                        _buildCarousel(),
+                        const SizedBox(height: 12),
+                        _buildCarouselIndicators(),
+                        const SizedBox(height: 24),
+                        const Text('Recent Report', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: geekGreen)),
+                        const SizedBox(height: 14),
+                        const RecentReportWidget(),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       case 1:
         return const CareerRoadmapScreen();
@@ -648,7 +491,8 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildStatCard({
-    required IconData icon,
+    IconData? icon,
+    String? imagePath,
     required String label,
     required String value,
     required Color color,
@@ -684,14 +528,21 @@ class _HomePageState extends State<HomePage>
               : Matrix4.identity(),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 28),
-              ),
+              imagePath != null
+                  ? Image.asset(
+                      imagePath,
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.contain,
+                    )
+                  : Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: color, size: 28),
+                    ),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(

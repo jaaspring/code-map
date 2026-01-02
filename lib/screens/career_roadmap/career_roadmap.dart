@@ -1255,57 +1255,81 @@ class _CareerRoadmapState extends State<CareerRoadmap> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // header with back button and logo
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Column(
+        children: [
+          // Premium Gradient Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 60, 24, 30),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [geekGreen, const Color(0xFF3AA036)],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.white, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Image.asset(
+                          'assets/icons/logo_only_white.png',
+                          height: 22,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Your Career Journey',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Explore your professional development roadmap',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 10),
+          
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        color: Color.fromARGB(255, 255, 255, 255)),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                  ),
-                  Image.asset(
-                    'assets/icons/logo_only_white.png',
-                    height: 18,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              const Text(
-                'Your Career Journey',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: textPrimary,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Select a career path and follow the learning roadmap',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 20),
+                   const SizedBox(height: 10),
               _buildJobSelector(),
               const SizedBox(height: 24),
               _buildRoadmapContent(),
             ],
           ),
-        ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
         color: backgroundColor,

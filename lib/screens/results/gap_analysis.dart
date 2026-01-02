@@ -1,6 +1,7 @@
 import 'package:code_map/screens/results/report.dart';
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/badge_service.dart';
 
 class GapAnalysisScreen extends StatefulWidget {
   final String userTestId;
@@ -44,6 +45,12 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
             widget.preloadedGapData!['job_title'] ?? "Selected Job";
         _isLoading = false;
       });
+
+      // Trigger career_explore badge check
+      final newBadges = await BadgeService.checkAndAwardBadge(trigger: 'career_explore');
+      if (newBadges.isNotEmpty && mounted) {
+        BadgeService.showBadgeDialog(context, newBadges);
+      }
       return;
     }
 
@@ -79,6 +86,12 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
         _gapData!['job_title'] = gapEntry?['job_title'] ?? "Selected Job";
         _isLoading = false;
       });
+      
+      // Trigger career_explore badge check
+      final newBadges = await BadgeService.checkAndAwardBadge(trigger: 'career_explore');
+      if (newBadges.isNotEmpty && mounted) {
+        BadgeService.showBadgeDialog(context, newBadges);
+      }
     } catch (e, st) {
       print("ERROR fetching gap analysis: $e\n$st");
       setState(() {
@@ -241,51 +254,72 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with back button and logo
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Column(
+        children: [
+          // Premium Gradient Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 60, 24, 30),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [const Color(0xFF4BC945), const Color(0xFF3AA036)],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Image.asset(
+                          'assets/icons/logo_only_white.png',
+                          height: 22,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Skill Gap Analysis",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Compare your skills with requirements",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 10),
+          
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        color: Color.fromARGB(255, 255, 255, 255)),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                  ),
-                  Image.asset(
-                    'assets/icons/logo_only_white.png',
-                    height: 18,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-              const SizedBox(height: 20),
-              
-              const Text(
-                "Gap Analysis",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Compare your skills with requirements",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.6),
-                ),
-              ),
-              const SizedBox(height: 24),
+                   const SizedBox(height: 12),
               
               // Canvas for content
               Expanded(
@@ -418,6 +452,8 @@ class _GapAnalysisScreenState extends State<GapAnalysisScreen> {
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 }

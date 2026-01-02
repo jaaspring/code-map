@@ -120,9 +120,16 @@ class RetakeService {
           // Update the array
           attempts[i] = updatedAttempt;
 
-          await userRef.update({
+          Map<String, dynamic> updateData = {
             'assessmentAttempts': attempts,
-          });
+          };
+
+          // If status is completed, increment global counter
+          if (status == 'Completed') {
+            updateData['assessmentsCompleted'] = FieldValue.increment(1);
+          }
+
+          await userRef.update(updateData);
 
           print(
               'Updated attempt ${updatedAttempt['attemptNumber']} status to $status');

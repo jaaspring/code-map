@@ -29,7 +29,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   bool _isManageUsersPressed = false;
   bool _isManageBadgesPressed = false;
   bool _isStatsPressed = false;
-  bool _isSettingsPressed = false;
 
   // Cache stats data
   Map<String, int>? _cachedStats;
@@ -60,7 +59,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       debugPrint('Error loading dashboard stats: $e');
       if (mounted) {
         setState(() {
-          _isLoadingStats = false; // Show grid with 0s if error
+          _isLoadingStats = false;
         });
       }
     }
@@ -322,10 +321,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
                     const SizedBox(height: 14),
 
-                    // Action Cards with Arrows
+                    // Action Cards with Custom Icons
                     _buildActionCard(
                       'Manage Users',
                       'View and manage all users',
+                      'assets/icons/manageuser-icon.png',
                       Icons.manage_accounts,
                       _isManageUsersPressed,
                       () => setState(() => _isManageUsersPressed = true),
@@ -342,6 +342,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     _buildActionCard(
                       'Manage Badges',
                       'Create and edit badges',
+                      'assets/icons/main-badges-icon.png',
                       Icons.emoji_events,
                       _isManageBadgesPressed,
                       () => setState(() => _isManageBadgesPressed = true),
@@ -358,6 +359,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     _buildActionCard(
                       'View Stats',
                       'Analytics and reports',
+                      'assets/icons/managereport-icon.png',
                       Icons.analytics,
                       _isStatsPressed,
                       () => setState(() => _isStatsPressed = true),
@@ -367,22 +369,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => const ReportListScreen(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildActionCard(
-                      'Settings',
-                      'App configuration',
-                      Icons.settings,
-                      _isSettingsPressed,
-                      () => setState(() => _isSettingsPressed = true),
-                      () => setState(() => _isSettingsPressed = false),
-                      () => setState(() => _isSettingsPressed = false),
-                      () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Coming soon!'),
-                          backgroundColor: geekGreen,
                         ),
                       ),
                     ),
@@ -396,7 +382,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Small Stat Cards - IMPROVED FOR ELDERLY READABILITY
   Widget _buildSmallStatCard(
     String title,
     String value,
@@ -419,9 +404,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         borderRadius: BorderRadius.circular(18),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          // jangan paksa height besar sangat, bagi flexible sikit
-          height: 140, // Fixed height to ensure grid consistency
-          padding: const EdgeInsets.all(14), // reduce sikit (was 16)
+          height: 140,
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.black,
             borderRadius: BorderRadius.circular(18),
@@ -442,18 +426,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // icon box kecil sikit supaya tak overflow
               Container(
-                padding: const EdgeInsets.all(8), // was 10
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: geekGreen.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: geekGreen, size: 24), // was 26
+                child: Icon(icon, color: geekGreen, size: 24),
               ),
-
               const SizedBox(height: 10),
-
               Text(
                 title,
                 style: const TextStyle(
@@ -465,10 +446,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-
               const SizedBox(height: 6),
-
-              // ini yang avoid overflow: number akan scale down bila sempit
               Expanded(
                 child: Align(
                   alignment: Alignment.bottomLeft,
@@ -494,7 +472,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Carousel for Admin
   Widget _buildCarousel() {
     return SizedBox(
       height: 180,
@@ -622,11 +599,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Action Card with Arrow
   Widget _buildActionCard(
     String title,
     String subtitle,
-    IconData icon,
+    String iconPath,
+    IconData fallbackIcon,
     bool isPressed,
     VoidCallback onTapDown,
     VoidCallback onTapUp,
@@ -664,6 +641,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
               isPressed ? Matrix4.identity().scaled(0.98) : Matrix4.identity(),
           child: Row(
             children: [
+              // Custom Icon
+              Image.asset(
+                iconPath,
+                width: 40,
+                height: 40,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    fallbackIcon,
+                    size: 40,
+                    color: geekGreen,
+                  );
+                },
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

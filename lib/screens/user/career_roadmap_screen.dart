@@ -3,6 +3,7 @@ import 'package:code_map/screens/user/assessment_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../career_roadmap/career_roadmap.dart';
+import '../../services/badge_service.dart';
 
 class CareerRoadmapScreen extends StatefulWidget {
   const CareerRoadmapScreen({super.key});
@@ -219,6 +220,21 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
         ),
       ),
     );
+    
+    // Trigger roadmap_create badge check
+    BadgeService.checkAndAwardBadge(trigger: 'roadmap_create').then((newBadges) {
+      if (newBadges.isNotEmpty && mounted) {
+        BadgeService.showBadgeDialog(context, newBadges);
+      }
+    });
+
+    // Increment roadmapsCreated counter
+    final user = _auth.currentUser;
+    if (user != null) {
+      _firestore.collection('users').doc(user.uid).update({
+        'roadmapsCreated': FieldValue.increment(1),
+      });
+    }
   }
 
   // helper method to format test ID display
@@ -323,41 +339,46 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Career Roadmaps',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'View your available career roadmaps based on job matches',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: textSecondary,
-                      ),
-                    ),
-                  ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 40),
+
+            // Title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'Career\nRoadmaps',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: geekGreen,
+                  height: 1.2,
                 ),
               ),
+            ),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-              Expanded(
-                child: isLoading
+            // Description
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'Explore your professional growth path based on job matches',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
                           color: geekGreen,
@@ -927,10 +948,10 @@ class _CareerRoadmapScreenState extends State<CareerRoadmapScreen> {
                               ],
                             ),
                           ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
+      ),
       ),
     );
   }

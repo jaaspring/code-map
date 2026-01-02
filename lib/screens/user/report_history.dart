@@ -243,47 +243,47 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Report History',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'View your completed assessments',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 40),
+
+            // Title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'Report\nHistory',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: geekGreen,
+                  height: 1.2,
                 ),
               ),
+            ),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-              // content
-              Expanded(
-                child: isLoading
+            // Description
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'View your completed assessments and career matches',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 10),
+
+          // content
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: isLoading
                     ? const Center(
                         child: CircularProgressIndicator(
                           color: geekGreen,
@@ -865,10 +865,10 @@ class _ReportHistoryScreenState extends State<ReportHistoryScreen>
                               ],
                             ),
                           ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
+      ),
       ),
     );
   }

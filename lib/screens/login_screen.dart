@@ -121,9 +121,16 @@ class _LoginScreenState extends State<LoginScreen>
           );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not found in Firestore')),
-        );
+        // User exists in Auth but not in Firestore (Deleted User)
+        await _auth.signOut();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account has been deleted. Please contact support.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       setState(() {

@@ -393,54 +393,87 @@ class _CareerAnalysisReportState extends State<CareerAnalysisReport> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                // Header with back button and centered logo
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back,
-                          color: Color.fromARGB(255, 255, 255, 255)),
-                      onPressed: () => Navigator.pop(context),
-                      padding: EdgeInsets.zero,
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Image.asset(
-                          'assets/icons/logo_only_white.png',
-                          height: 22, 
-                          fit: BoxFit.contain,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Simple Header with Back Button and Logo
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.black,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 48), // Balance for back button
-                  ],
-                ),
-              const SizedBox(height: 20),
-              
-              const Text(
-                "Career Analysis Report",
+                  ),
+                  // Logo centered
+                  Image.asset(
+                    'assets/icons/logo_only_white.png',
+                    width: 50,
+                    height: 50,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.emoji_events, color: Colors.white, size: 30),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'Career Analysis\nReport',
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: -0.5,
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4BC945),
+                  height: 1.2,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                "Detailed comprehensive report of your skills",
+            ),
+
+            const SizedBox(height: 16),
+
+            // Description
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'Detailed comprehensive report of your skills',
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 16,
+                  color: Colors.white70,
+                  height: 1.5,
                 ),
               ),
-              const SizedBox(height: 24),
+            ),
+          
+          const SizedBox(height: 10),
+          
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               
               // Debug Info Panel
               if (errorMessage != null) ...[
@@ -800,35 +833,6 @@ class _CareerAnalysisReportState extends State<CareerAnalysisReport> {
                                         const SizedBox(height: 30),
                                       ],
 
-                                      // Knowledge Radar Chart
-                                      if (reportData['charts']['knowledge_radar_chart'] != null) ...[
-                                        const Text(
-                                          "Knowledge Gap Radar Chart",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          "Visual representation of your knowledge compared to job requirements",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[400],
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        SizedBox(
-                                          height: 280,
-                                          child: _buildChartImage(
-                                            reportData['charts']['knowledge_radar_chart'],
-                                            "Knowledge Radar",
-                                          ),
-                                        ),
-                                        const SizedBox(height: 30),
-                                      ],
-
                                       // Test Result Performance Chart
                                       if (reportData['charts']['result_chart'] != null) ...[
                                         const Text(
@@ -908,7 +912,45 @@ class _CareerAnalysisReportState extends State<CareerAnalysisReport> {
                                 SizedBox(height: 20),
                               ],
 
-
+                              // Career Roadmap Button
+                              if (widget.fromGapAnalysis == true) ...[
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 54,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CareerRoadmap(
+                                            userTestId: widget.userTestId,
+                                            jobIndex: widget.jobIndex,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF4BC945),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      elevation: 4,
+                                      shadowColor: const Color(0xFF4BC945).withOpacity(0.4),
+                                    ),
+                                    child: const Text(
+                                      "View your Personalized Career Roadmap",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
                             ],
                           ),
                         ),
@@ -959,50 +1001,13 @@ class _CareerAnalysisReportState extends State<CareerAnalysisReport> {
                     ),
                   ),
                 ),
-              
-              // Career Roadmap Button
-              if (widget.fromGapAnalysis == true) ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CareerRoadmap(
-                            userTestId: widget.userTestId,
-                            jobIndex: widget.jobIndex,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4BC945),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 4,
-                      shadowColor: const Color(0xFF4BC945).withOpacity(0.4),
-                    ),
-                    child: const Text(
-                      "View Career Roadmap",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
               ],
-            ],
+            ),
           ),
         ),
+      ],
+    ),
       ),
-    );
+  );
   }
 }

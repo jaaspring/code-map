@@ -161,7 +161,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   // Logo centered
                   Image.asset(
-                    'assets/logo_only_white.png',
+                    'assets/icons/logo_only_white.png',
                     width: 50,
                     height: 50,
                     errorBuilder: (context, error, stackTrace) {
@@ -175,7 +175,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 ],
               ),
 
-              const SizedBox(height: 60),
+              const SizedBox(height: 40),
 
               // Title
               const Text(

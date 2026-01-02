@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:lottie/lottie.dart';
@@ -14,45 +16,98 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Transition to Onboarding screen after 3 seconds
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 3), () {
+    _checkUserStatus();
+  }
+
+  Future<void> _checkUserStatus() async {
+    // Artificial delay for splash effect
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (!mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        // Verify user exists in Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          // Valid user, navigate to Home or Admin based on role
+          final role = userDoc.data()?['role'] ?? 'user';
+          if (mounted) {
+            if (role == 'admin') {
+               Navigator.pushReplacementNamed(context, '/admin_dashboard');
+            } else {
+               Navigator.pushReplacementNamed(context, '/home');
+            }
+          }
+        } else {
+          // User deleted in Firestore, sign out
+          await FirebaseAuth.instance.signOut();
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Session expired or account deleted.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        // Error checking, default to Onboarding safe mode
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const OnboardingScreen()),
           );
         }
-      });
-    });
+      }
+    } else {
+      // No user logged in
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
+      body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // White Logo
+            const Spacer(flex: 2),
+            
+            // White Logo (includes text)
             Image.asset(
               'assets/icons/logo_white.png',
-              width: 100,
-              height: 100,
+              width: 200,
+              height: 200,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  width: 100,
-                  height: 100,
+                  width: 200,
+                  height: 200,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Center(
                     child: Text(
                       '{  }',
                       style: TextStyle(
-                        fontSize: 40,
+                        fontSize: 48,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
@@ -62,34 +117,25 @@ class _SplashScreenState extends State<SplashScreen> {
               },
             ),
 
-            const SizedBox(height: 30),
+            const Spacer(flex: 3),
 
-            // CodeMap text
-            const Text(
-              '.CodeMap.',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 1.5,
+            // Lottie animation at bottom
+            Center(
+              child: Lottie.asset(
+                'assets/lottie/IQ-Practice.json',
+                height: 200,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.smart_toy,
+                    size: 150,
+                    color: Colors.grey[800],
+                  );
+                },
               ),
             ),
 
-            const SizedBox(height: 200),
-
-            // Lottie animation
-            Lottie.asset(
-              'assets/lottie/IQ-Practice.json',
-              height: 180,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  Icons.smart_toy,
-                  size: 150,
-                  color: Colors.grey[800],
-                );
-              },
-            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),

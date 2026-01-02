@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'badge_form_dialog.dart'; // Import the form dialog
+import 'dart:convert';
+import 'badge_form_dialog.dart';
 
 class AdminBadgeCreatorScreen extends StatefulWidget {
   const AdminBadgeCreatorScreen({Key? key}) : super(key: key);
@@ -134,7 +134,7 @@ class _AdminBadgeCreatorScreenState extends State<AdminBadgeCreatorScreen> {
                     height: 50,
                     errorBuilder: (context, error, stackTrace) {
                       return const Icon(
-                        Icons.code,
+                        Icons.emoji_events,
                         size: 50,
                         color: Colors.white,
                       );
@@ -142,24 +142,30 @@ class _AdminBadgeCreatorScreenState extends State<AdminBadgeCreatorScreen> {
                   ),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
-                        onTap: () => _showBadgeForm(),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: geekGreen,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Add Button
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
                             borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            color: Colors.white,
-                            size: 20,
+                            onTap: () => _showBadgeForm(),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: geekGreen,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.add,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
@@ -467,17 +473,9 @@ class _AdminBadgeCreatorScreenState extends State<AdminBadgeCreatorScreen> {
                 width: 2,
               ),
             ),
-            child: imageUrl != null
-                ? ClipOval(
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Icon(
-                          _getIcon(iconName ?? 'emoji_events'),
-                          color: color),
-                    ),
-                  )
-                : Icon(_getIcon(iconName ?? 'emoji_events'), color: color),
+            child: ClipOval(
+              child: _buildBadgeImage(imageUrl, iconName, color),
+            ),
           ),
           const SizedBox(width: 16),
 
@@ -539,8 +537,10 @@ class _AdminBadgeCreatorScreenState extends State<AdminBadgeCreatorScreen> {
                       data['category'] ?? 'General',
                       Icons.category,
                     ),
-                    if (imageUrl != null)
-                      _buildInfoChip('Image', Icons.image),
+                    if (imageUrl != null && imageUrl.isNotEmpty)
+                      _buildInfoChip('Custom Image', Icons.image),
+                    if (iconName != null && iconName.isNotEmpty)
+                      _buildInfoChip('Icon', Icons.interests),
                   ],
                 ),
               ],
@@ -615,6 +615,36 @@ class _AdminBadgeCreatorScreenState extends State<AdminBadgeCreatorScreen> {
     );
   }
 
+  Widget _buildBadgeImage(String? imageUrl, String? iconName, Color color) {
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        return Image.memory(
+          base64Decode(imageUrl),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Center(
+              child: Icon(
+                _getIcon(iconName ?? 'emoji_events'),
+                color: color,
+                size: 32,
+              ),
+            );
+          },
+        );
+      } catch (e) {
+        // Fallback to icon if decoding fails
+      }
+    }
+    
+    return Center(
+      child: Icon(
+        _getIcon(iconName ?? 'emoji_events'),
+        color: color,
+        size: 32,
+      ),
+    );
+  }
+
   Widget _buildInfoChip(String label, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -638,6 +668,8 @@ class _AdminBadgeCreatorScreenState extends State<AdminBadgeCreatorScreen> {
       ),
     );
   }
+
+
 
   void _showBadgeForm({String? badgeId, Map<String, dynamic>? existingData}) {
     showDialog(
@@ -727,14 +759,6 @@ class _AdminBadgeCreatorScreenState extends State<AdminBadgeCreatorScreen> {
     );
 
     if (confirm == true) {
-      if (imageUrl != null) {
-        try {
-          await FirebaseStorage.instance.refFromURL(imageUrl).delete();
-        } catch (e) {
-          print('Error deleting image: $e');
-        }
-      }
-
       await _firestore.collection('badge_definitions').doc(badgeId).delete();
       
       if (mounted) {

@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/user_profile_match.dart';
 import '../../services/api_service.dart';
 import 'package:code_map/screens/results/gap_analysis.dart';
 import '../../utils/retake_service.dart';
+import '../../services/badge_service.dart';
 
 class CareerRecommendationsScreen extends StatefulWidget {
   final String userTestId;
@@ -121,11 +123,76 @@ class _CareerRecommendationsScreenState
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    // Check for high match and perfect scores
+    int highMatches = 0;
+    int perfectScores = 0;
+    
+    if (_profileMatch != null) {
+      for (var job in _profileMatch!.jobMatches) {
+        if (job.similarityPercentage >= 100) {
+          perfectScores++;
+        } else if (job.similarityPercentage >= 90) {
+          highMatches++;
+        }
+      }
+    }
+
+    // Calculate weekly assessments
+    int weeklyCount = 0;
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        final data = userDoc.data();
+        final attempts = data?['assessmentAttempts'] as List<dynamic>? ?? [];
+        final now = DateTime.now();
+        final oneWeekAgo = now.subtract(const Duration(days: 7));
+        
+        for (var attempt in attempts) {
+          if (attempt['status'] == 'Completed') {
+            final completedAtStr = attempt['completedAt'];
+            if (completedAtStr != null) {
+              final completedAt = DateTime.parse(completedAtStr);
+              if (completedAt.isAfter(oneWeekAgo)) {
+                weeklyCount++;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error calculating weekly assessments: $e');
+    }
+
+    final Map<String, dynamic> updateData = {};
+    if (highMatches > 0) {
+      updateData['highMatchScores'] = FieldValue.increment(highMatches);
+    }
+    if (perfectScores > 0) {
+      updateData['perfectScores'] = FieldValue.increment(perfectScores);
+    }
+    
+    // Update weeklyAssessments to current count (not increment, but set the current windows count)
+    // Actually, if the condition is 'count', it usually expects an ever-growing number.
+    // But since the badge is 'Completed 3 in a single week', we can just set this field.
+    updateData['weeklyAssessments'] = weeklyCount;
+
+    if (updateData.isNotEmpty) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(updateData);
+    }
+
     await RetakeService.updateAttemptStatus(
       userId: user.uid,
       testId: widget.userTestId,
       status: 'Completed',
     );
+    
+    // Trigger assessment_complete badge check
+    if (mounted) {
+      final newBadges = await BadgeService.checkAndAwardBadge(trigger: 'assessment_complete');
+      if (newBadges.isNotEmpty && mounted) {
+        BadgeService.showBadgeDialog(context, newBadges);
+      }
+    }
   }
 
   void _selectCareer(String jobIndex) {

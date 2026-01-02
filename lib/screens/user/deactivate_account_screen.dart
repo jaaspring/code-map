@@ -187,7 +187,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                     ),
                     // Logo centered
                     Image.asset(
-                      'assets/logo_only_white.png',
+                      'assets/icons/logo_only_white.png',
                       width: 50,
                       height: 50,
                       errorBuilder: (context, error, stackTrace) {
@@ -241,10 +241,17 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.warning_rounded,
-                        color: Colors.red,
-                        size: 24,
+                      Image.asset(
+                        'assets/icons/warning-icon.png',
+                        width: 24,
+                        height: 24,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.warning_rounded,
+                            color: Colors.red,
+                            size: 24,
+                          );
+                        },
                       ),
                       const SizedBox(width: 12),
                       Expanded(

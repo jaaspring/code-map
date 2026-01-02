@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import '../../services/badge_service.dart';
 import '../../models/education_skills_data.dart';
 
 class EditInformationScreen extends StatefulWidget {
@@ -96,8 +97,28 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
           'skills': _selectedSkills.join(', '),
           'careerGoals': _careerGoalsController.text,
         });
+        
+        // Use the new unified BadgeService
+        final newBadges = await BadgeService.checkAndAwardBadge(trigger: 'profile_update');
+        if (newBadges.isNotEmpty && mounted) {
+          BadgeService.showBadgeDialog(context, newBadges);
+        }
+        
+        // Also check for goal_set if career goals were added
+        if (_careerGoalsController.text.trim().isNotEmpty) {
+           // Increment goalsSet counter
+           final user = _auth.currentUser;
+           if (user != null) {
+              await _firestore.collection('users').doc(user.uid).update({
+                'goalsSet': FieldValue.increment(1),
+              });
+           }
 
-        await _awardProfileBadges(user.uid, base64Image);
+           final goalBadges = await BadgeService.checkAndAwardBadge(trigger: 'goal_set');
+           if (goalBadges.isNotEmpty && mounted) {
+             BadgeService.showBadgeDialog(context, goalBadges);
+           }
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -124,46 +145,7 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
     }
   }
 
-  Future<void> _awardProfileBadges(String userId, String? photoUrl) async {
-    try {
-      final userDoc = await _firestore.collection('users').doc(userId).get();
-      final userData = userDoc.data() as Map<String, dynamic>;
-      final badges = List<String>.from(userData['badges'] ?? []);
 
-      final profileBadgesQuery = await _firestore
-          .collection('badge_definitions')
-          .where('trigger', isEqualTo: 'profile_update')
-          .get();
-
-      for (var badgeDoc in profileBadgesQuery.docs) {
-        final badgeData = badgeDoc.data();
-        final conditionField = badgeData['conditionField'];
-        final badgeId = badgeDoc.id;
-
-        if (!badges.contains(badgeId)) {
-          bool shouldAward = false;
-
-          if (conditionField == 'name' && _nameController.text.isNotEmpty) {
-            shouldAward = true;
-          } else if (conditionField == 'profileImageUrl' &&
-              photoUrl != null &&
-              photoUrl.isNotEmpty) {
-            shouldAward = true;
-          }
-
-          if (shouldAward) {
-            badges.add(badgeId);
-          }
-        }
-      }
-
-      await _firestore.collection('users').doc(userId).update({
-        'badges': badges,
-      });
-    } catch (e) {
-      // Silent error
-    }
-  }
 
   Future<String> _encodeImageToBase64(File image) async {
     final bytes = await image.readAsBytes();
@@ -428,13 +410,13 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Back Button and Logo
-              Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Simple Header with Back Button and Logo
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Align(
@@ -461,7 +443,7 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
                   ),
                   // Logo centered
                   Image.asset(
-                    'assets/logo_only_white.png',
+                    'assets/icons/logo_only_white.png',
                     width: 50,
                     height: 50,
                     errorBuilder: (context, error, stackTrace) {
@@ -474,12 +456,15 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
                   ),
                 ],
               ),
+            ),
+            
+            const SizedBox(height: 0),
 
-              const SizedBox(height: 40),
-
-              // Title
-              const Text(
-                'Edit Your\nProfile',
+            // Title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'Edit\nInformation',
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
@@ -487,72 +472,86 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
                   height: 1.2,
                 ),
               ),
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-              // Description
-              const Text(
-                'Update your personal information and preferences.',
+            // Description
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'Keep your profile data and career goals updated',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.white70,
                   height: 1.5,
                 ),
               ),
+            ),
+            
+            const SizedBox(height: 30),
 
-              const SizedBox(height: 30),
-
-              // Profile Photo Section
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey[800],
-                          border: Border.all(
-                            color: geekGreen,
-                            width: 3,
-                          ),
-                        ),
-                        child: ClipOval(
-                          child: _imageFile != null
-                              ? Image.file(_imageFile!, fit: BoxFit.cover)
-                              : _existingImageBase64 != null
-                                  ? Image.memory(
-                                      base64Decode(_existingImageBase64!),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : const Icon(Icons.person,
-                                      size: 60, color: Colors.grey),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
+            Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Section (Avatar)
+                  Center(
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
                           decoration: BoxDecoration(
-                            color: geekGreen,
                             shape: BoxShape.circle,
+                            border: Border.all(color: geekGreen, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: geekGreen.withOpacity(0.2),
+                                blurRadius: 15,
+                                spreadRadius: 2,
+                              ),
+                            ],
                           ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 16,
-                            color: Colors.white,
+                          child: ClipOval(
+                            child: _imageFile != null
+                                ? Image.file(_imageFile!, fit: BoxFit.cover)
+                                : (_existingImageBase64 != null &&
+                                        _existingImageBase64!.isNotEmpty)
+                                    ? Image.memory(
+                                        base64Decode(_existingImageBase64!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            _buildPlaceholderAvatar(),
+                                      )
+                                    : _buildPlaceholderAvatar(),
                           ),
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: geekGreen,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
+                  const SizedBox(height: 32),
 
               // Full Name
               _buildInputField(
@@ -798,6 +797,9 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
           ),
         ),
       ),
+      ],
+    ),
+      ),
     );
   }
 
@@ -874,6 +876,17 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPlaceholderAvatar() {
+    return Container(
+      color: geekGreen.withOpacity(0.2),
+      child: const Icon(
+        Icons.person,
+        color: geekGreen,
+        size: 60,
+      ),
     );
   }
 

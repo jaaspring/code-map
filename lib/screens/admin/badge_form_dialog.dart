@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import 'dart:io';
 
 class BadgeFormDialog extends StatefulWidget {
@@ -23,6 +23,12 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
   final _conditionValueController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
+  final FocusNode _nameFocus = FocusNode();
+  final FocusNode _descFocus = FocusNode();
+  final FocusNode _orderFocus = FocusNode();
+  final FocusNode _conditionValueFocus = FocusNode();
+  final FocusNode _conditionFieldFocus = FocusNode();
+
   String _selectedIcon = 'emoji_events';
   String _selectedColor = '#4BC945';
   String _selectedCategory = 'General';
@@ -35,6 +41,7 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
   bool _isUploading = false;
 
   static const Color geekGreen = Color(0xFF4BC945);
+  static const Color geekLightGreen = Color(0xFF81D67C);
 
   final List<String> _triggers = [
     'manual',
@@ -110,6 +117,13 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
     _descController.dispose();
     _orderController.dispose();
     _conditionValueController.dispose();
+    
+    _nameFocus.dispose();
+    _descFocus.dispose();
+    _orderFocus.dispose();
+    _conditionValueFocus.dispose();
+    _conditionFieldFocus.dispose();
+    
     super.dispose();
   }
 
@@ -131,33 +145,28 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       }
     }
   }
 
-  Future<String?> _uploadImage() async {
-    if (_selectedImage == null) return _existingImageUrl;
-
+  Future<String?> _encodeImageToBase64(File image) async {
     try {
-      setState(() => _isUploading = true);
-
-      final fileName =
-          'badge_${DateTime.now().millisecondsSinceEpoch}_${_nameController.text.replaceAll(' ', '_')}.jpg';
-      final storageRef =
-          FirebaseStorage.instance.ref().child('badges').child(fileName);
-
-      await storageRef.putFile(_selectedImage!);
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      setState(() => _isUploading = false);
-      return downloadUrl;
+      final bytes = await image.readAsBytes();
+      return base64Encode(bytes);
     } catch (e) {
-      setState(() => _isUploading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading image: $e')),
+          SnackBar(
+            content: Text('Error encoding image: $e'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       }
       return null;
@@ -300,31 +309,47 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
                       width: double.infinity,
                       height: 150,
                       decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[700]!),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _existingImageUrl != null || _selectedImage != null
+                              ? geekGreen
+                              : geekGreen.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: _selectedImage != null
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               child: Image.file(_selectedImage!,
                                   fit: BoxFit.cover),
                             )
-                          : _existingImageUrl != null
+                          : _existingImageUrl != null && _existingImageUrl!.isNotEmpty
                               ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(_existingImageUrl!,
-                                      fit: BoxFit.cover),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.memory(
+                                      base64Decode(_existingImageUrl!),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          const Icon(Icons.broken_image,
+                                              size: 48, color: Colors.red)),
                                 )
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add_photo_alternate,
-                                        size: 48, color: Colors.grey[500]),
+                                    const Icon(Icons.add_photo_alternate,
+                                        size: 48, color: geekGreen),
                                     const SizedBox(height: 8),
                                     Text(
                                       'Tap to upload image',
-                                      style: TextStyle(color: Colors.grey[500]),
+                                      style: TextStyle(color: Colors.grey.shade600),
                                     ),
                                   ],
                                 ),
@@ -372,37 +397,20 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                // Form Fields
-                TextFormField(
+                _buildStyledField(
                   controller: _nameController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Badge Name *',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[700]!),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: geekGreen, width: 2),
-                    ),
-                  ),
+                  focusNode: _nameFocus,
+                  hintText: 'Badge Name *',
+                  icon: Icons.badge_outlined,
                   validator: (v) => v?.isEmpty == true ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
 
-                TextFormField(
+                _buildStyledField(
                   controller: _descController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Description *',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[700]!),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: geekGreen, width: 2),
-                    ),
-                  ),
+                  focusNode: _descFocus,
+                  hintText: 'Description *',
+                  icon: Icons.description_outlined,
                   maxLines: 2,
                   validator: (v) => v?.isEmpty == true ? 'Required' : null,
                 ),
@@ -410,23 +418,17 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
 
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
-                  dropdownColor: Colors.grey[800],
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Category',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[700]!),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: geekGreen, width: 2),
-                    ),
+                  dropdownColor: Colors.white,
+                  style: const TextStyle(color: Colors.black),
+                  decoration: _getInputDecoration(
+                    hintText: 'Category',
+                    icon: Icons.category_outlined,
                   ),
                   items: [
                     'General',
                     'Profile',
                     'Career',
-                    'Learning',
+                    'Assessment',
                     'Achievement'
                   ]
                       .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -437,17 +439,11 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
 
                 DropdownButtonFormField<String>(
                   value: _selectedTrigger,
-                  dropdownColor: Colors.grey[800],
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Trigger',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[700]!),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: geekGreen, width: 2),
-                    ),
+                  dropdownColor: Colors.white,
+                  style: const TextStyle(color: Colors.black),
+                  decoration: _getInputDecoration(
+                    hintText: 'Trigger',
+                    icon: Icons.bolt_outlined,
                   ),
                   items: _triggers
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -458,80 +454,53 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
 
                 DropdownButtonFormField<String>(
                   value: _selectedConditionType,
-                  dropdownColor: Colors.grey[800],
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Condition Type',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[700]!),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: geekGreen, width: 2),
-                    ),
+                  dropdownColor: Colors.white,
+                  style: const TextStyle(color: Colors.black),
+                  decoration: _getInputDecoration(
+                    hintText: 'Condition Type',
+                    icon: Icons.rule_outlined,
                   ),
                   items: _conditionTypes
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                       .toList(),
                   onChanged: (v) => setState(() => _selectedConditionType = v!),
                 ),
+                const SizedBox(height: 16),
 
                 if (_selectedConditionType != 'always') ...[
-                  const SizedBox(height: 16),
-                  TextFormField(
+                  _buildStyledField(
+                    controller: null,
+                    focusNode: _conditionFieldFocus,
+                    hintText: 'Condition Field',
+                    icon: Icons.code_outlined,
                     initialValue: _conditionField,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Condition Field (e.g., name, careersExplored)',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: const OutlineInputBorder(
-                        borderSide: BorderSide(color: geekGreen, width: 2),
-                      ),
-                    ),
                     onChanged: (v) => _conditionField = v,
                   ),
+                  const SizedBox(height: 16),
                 ],
 
                 if (_selectedConditionType == 'count' ||
                     _selectedConditionType == 'array_length') ...[
-                  const SizedBox(height: 16),
-                  TextFormField(
+                  _buildStyledField(
                     controller: _conditionValueController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Condition Value',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: const OutlineInputBorder(
-                        borderSide: BorderSide(color: geekGreen, width: 2),
-                      ),
-                    ),
+                    focusNode: _conditionValueFocus,
+                    hintText: 'Condition Value',
+                    icon: Icons.numbers_outlined,
                     keyboardType: TextInputType.number,
                   ),
+                  const SizedBox(height: 16),
                 ],
 
-                const SizedBox(height: 16),
-
-                TextFormField(
+                _buildStyledField(
                   controller: _orderController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'Display Order',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[700]!),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: geekGreen, width: 2),
-                    ),
-                  ),
+                  focusNode: _orderFocus,
+                  hintText: 'Display Order',
+                  icon: Icons.sort_outlined,
                   keyboardType: TextInputType.number,
                 ),
+
+                const SizedBox(height: 32),
+
 
                 const SizedBox(height: 24),
 
@@ -558,24 +527,24 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
                           backgroundColor: geekGreen,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          elevation: 0,
                         ),
                         child: _isUploading
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: 24,
+                                height: 24,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
+                                  color: Colors.white,
+                                  strokeWidth: 3,
                                 ),
                               )
                             : const Text(
                                 'Save',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -594,12 +563,19 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
   Future<void> _saveBadge() async {
     if (!_formKey.currentState!.validate()) return;
 
+    setState(() => _isUploading = true);
+
     try {
-      String? imageUrl;
+      String? base64Image;
       if (_imageType == 'image') {
-        imageUrl = await _uploadImage();
-        if (imageUrl == null && _selectedImage != null) {
-          return;
+        if (_selectedImage != null) {
+          base64Image = await _encodeImageToBase64(_selectedImage!);
+          if (base64Image == null) {
+            setState(() => _isUploading = false);
+            return;
+          }
+        } else {
+          base64Image = _existingImageUrl;
         }
       }
 
@@ -610,8 +586,9 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
         'category': _selectedCategory,
         'trigger': _selectedTrigger,
         'conditionType': _selectedConditionType,
-        'conditionField': _conditionField.isNotEmpty ? _conditionField : null,
-        'conditionValue': _conditionValueController.text.isNotEmpty
+        'conditionField': _conditionField.trim().isEmpty ? null : _conditionField.trim(),
+        'conditionValue': (_selectedConditionType == 'count' ||
+                _selectedConditionType == 'array_length')
             ? int.tryParse(_conditionValueController.text)
             : null,
         'order': int.tryParse(_orderController.text) ?? 0,
@@ -620,10 +597,8 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
 
       if (_imageType == 'icon') {
         data['iconName'] = _selectedIcon;
-        data['imageUrl'] = null;
       } else {
-        data['imageUrl'] = imageUrl;
-        data['iconName'] = null;
+        data['imageUrl'] = base64Image;
       }
 
       if (widget.badgeId == null) {
@@ -632,18 +607,13 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
             .collection('badge_definitions')
             .add(data);
       } else {
-        if (_imageType == 'image' &&
-            _existingImageUrl != null &&
-            imageUrl != _existingImageUrl) {
-          try {
-            await FirebaseStorage.instance
-                .refFromURL(_existingImageUrl!)
-                .delete();
-          } catch (e) {
-            print('Error deleting old image: $e');
-          }
+        // Only for updates: ensure previous fields are cleaned up
+        if (_imageType == 'icon') {
+          data['imageUrl'] = FieldValue.delete();
+        } else {
+          data['iconName'] = FieldValue.delete();
         }
-
+        
         await FirebaseFirestore.instance
             .collection('badge_definitions')
             .doc(widget.badgeId)
@@ -653,18 +623,122 @@ class _BadgeFormDialogState extends State<BadgeFormDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Badge saved successfully!'),
+          SnackBar(
+            content: const Text('Badge saved successfully!'),
             backgroundColor: geekGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isUploading = false);
+        
+        String errorMessage = 'Error: $e';
+        if (e.toString().contains('UNAVAILABLE') || e.toString().contains('host')) {
+          errorMessage = 'Network error: Please check your internet connection and try again.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       }
     }
+  }
+
+  Widget _buildStyledField({
+    required TextEditingController? controller,
+    required FocusNode focusNode,
+    required String hintText,
+    required IconData icon,
+    int maxLines = 1,
+    String? initialValue,
+    TextInputType keyboardType = TextInputType.text,
+    Function(String)? onChanged,
+    String? Function(String?)? validator,
+  }) {
+    return AnimatedBuilder(
+      animation: focusNode,
+      builder: (context, child) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: focusNode.hasFocus
+                  ? geekGreen
+                  : geekGreen.withOpacity(0.3),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: focusNode.hasFocus
+                    ? geekGreen.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.05),
+                blurRadius: focusNode.hasFocus ? 12 : 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextFormField(
+            controller: controller,
+            focusNode: focusNode,
+            initialValue: initialValue,
+            keyboardType: keyboardType,
+            onChanged: onChanged,
+            validator: validator,
+            maxLines: maxLines,
+            style: const TextStyle(color: Colors.black, fontSize: 16),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+              prefixIcon: Icon(
+                icon,
+                color: focusNode.hasFocus ? geekGreen : Colors.grey,
+              ),
+              hintText: hintText,
+              hintStyle: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  InputDecoration _getInputDecoration({
+    required String hintText,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      filled: true,
+      fillColor: Colors.white,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+      prefixIcon: Icon(
+        icon,
+        color: Colors.grey,
+      ),
+      hintText: hintText,
+      hintStyle: TextStyle(
+        color: Colors.grey.shade600,
+        fontSize: 16,
+      ),
+    );
   }
 }

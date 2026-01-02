@@ -16,8 +16,8 @@ Future<void> main() async {
   // initialize Firebase
   await Firebase.initializeApp();
 
-  // pre-warm backend
-  await _preWarmBackend();
+  // pre-warm backend (non-blocking)
+  _preWarmBackend();
 
   runApp(const MyApp());
 }
