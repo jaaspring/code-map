@@ -27,55 +27,11 @@ class _LoginScreenState extends State<LoginScreen>
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
 
-  // Animation controllers
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late AnimationController _backgroundController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // GeeksforGeeks color palette
-  static const Color gfgGreen = Color(0xFF2F8D46);
-  static const Color gfgLightGreen = Color(0xFF4CAF50);
-  static const Color gfgAccent = Color(0xFF66BB6A);
-  static const Color gfgBackground = Color(0xFFE8F5E9); // Light green tint
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Initialize animations
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _slideController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-
-    _backgroundController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
-
-    // Start animations
-    _fadeController.forward();
-    _slideController.forward();
-  }
+  // Green color palette
+  static const Color geekGreen = Color(0xFF4BC945);
 
   @override
   void dispose() {
@@ -83,9 +39,6 @@ class _LoginScreenState extends State<LoginScreen>
     _passwordController.dispose();
     _emailFocus.dispose();
     _passwordFocus.dispose();
-    _fadeController.dispose();
-    _slideController.dispose();
-    _backgroundController.dispose();
     super.dispose();
   }
 
@@ -149,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Login Successful!'),
-            backgroundColor: gfgGreen,
+            backgroundColor: geekGreen,
             behavior: SnackBarBehavior.floating,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -159,12 +112,12 @@ class _LoginScreenState extends State<LoginScreen>
         if (role == 'admin') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => AdminDashboard()),
+            MaterialPageRoute(builder: (context) => const AdminDashboard()),
           );
         } else {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomePage()),
+            MaterialPageRoute(builder: (context) => const HomePage()),
           );
         }
       } else {
@@ -203,622 +156,355 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: SafeArea(
-        child: Stack(
-          children: [
-            // Animated gradient background with wave effect
-            AnimatedBuilder(
-              animation: _backgroundController,
-              builder: (context, child) {
-                return Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment(
-                        -1.5 + (_backgroundController.value * 1.0),
-                        -1.0 + (_backgroundController.value * 0.8),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+
+                // Back button and logo
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const WelcomePage(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.black,
+                              size: 20,
+                            ),
+                          ),
+                        ),
                       ),
-                      end: Alignment(
-                        1.5 - (_backgroundController.value * 1.0),
-                        1.0 - (_backgroundController.value * 0.8),
-                      ),
-                      colors: [
-                        gfgBackground,
-                        Colors.white,
-                        gfgLightGreen.withOpacity(0.2),
-                        gfgBackground,
-                      ],
+                    ),
+                    // Logo centered
+                    Image.asset(
+                      'assets/icons/logo_only_white.png',
+                      width: 50,
+                      height: 50,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.code,
+                          size: 50,
+                          color: Colors.white,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 40),
+
+                // Login Title
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: const Text(
+                    'Login Your\nAccount',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: geekGreen,
+                      height: 1.2,
                     ),
                   ),
-                );
-              },
-            ),
+                ),
 
-            // Large moving bubble - Top Right (above logo area)
-            Positioned(
-              top: -100 + (_backgroundController.value * 50),
-              right: -80 + (_backgroundController.value * 60),
-              child: AnimatedBuilder(
-                animation: _backgroundController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: 1.2 + (_backgroundController.value * 0.4),
-                    child: Container(
-                      width: 280,
-                      height: 280,
+                const SizedBox(height: 30),
+
+                // Email Field
+                AnimatedBuilder(
+                  animation: _emailFocus,
+                  builder: (context, child) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            gfgAccent.withOpacity(0.2),
-                            gfgAccent.withOpacity(0.08),
-                            Colors.transparent,
-                          ],
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _emailFocus.hasFocus
+                              ? geekGreen
+                              : _emailError.isNotEmpty
+                                  ? Colors.red
+                                  : geekGreen.withOpacity(0.3),
+                          width: 2,
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Large moving bubble - Bottom area (below buttons)
-            Positioned(
-              bottom: -150 - (_backgroundController.value * 50),
-              left: -120 + (_backgroundController.value * 80),
-              child: AnimatedBuilder(
-                animation: _backgroundController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: 1.4 + ((1 - _backgroundController.value) * 0.3),
-                    child: Container(
-                      width: 400,
-                      height: 400,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            gfgLightGreen.withOpacity(0.18),
-                            gfgLightGreen.withOpacity(0.08),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Medium bubble - Far Right (outside content area)
-            Positioned(
-              top: MediaQuery.of(context).size.height * 0.5 +
-                  (_backgroundController.value * 100),
-              right: -100 + (_backgroundController.value * 40),
-              child: AnimatedBuilder(
-                animation: _backgroundController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: 1.0 + (_backgroundController.value * 0.5),
-                    child: Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            gfgGreen.withOpacity(0.15),
-                            gfgGreen.withOpacity(0.05),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Small floating dot - Top Left corner
-            Positioned(
-              top: 40 + (_backgroundController.value * 60),
-              left: -20 + (_backgroundController.value * 20),
-              child: AnimatedBuilder(
-                animation: _backgroundController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: 0.8 + (_backgroundController.value * 0.6),
-                    child: Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: gfgAccent.withOpacity(0.2),
                         boxShadow: [
                           BoxShadow(
-                            color: gfgAccent.withOpacity(0.25),
-                            blurRadius: 20,
-                            spreadRadius: 5,
+                            color: _emailFocus.hasFocus
+                                ? geekGreen.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.05),
+                            blurRadius: _emailFocus.hasFocus ? 12 : 8,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Small floating dot - Bottom Right corner
-            Positioned(
-              bottom: 50 - (_backgroundController.value * 80),
-              right: -30 + (_backgroundController.value * 30),
-              child: AnimatedBuilder(
-                animation: _backgroundController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: 0.9 + ((1 - _backgroundController.value) * 0.6),
-                    child: Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: gfgLightGreen.withOpacity(0.18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: gfgLightGreen.withOpacity(0.2),
-                            blurRadius: 25,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Tiny dot - Left edge
-            Positioned(
-              top: MediaQuery.of(context).size.height * 0.65 +
-                  (_backgroundController.value * 40),
-              left: -25 - (_backgroundController.value * 5),
-              child: AnimatedBuilder(
-                animation: _backgroundController,
-                builder: (context, child) {
-                  return Opacity(
-                    opacity: 0.3 + (_backgroundController.value * 0.4),
-                    child: Container(
-                      width: 70,
-                      height: 70,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            gfgGreen.withOpacity(0.25),
-                            gfgGreen.withOpacity(0.08),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Glowing dot - Top center area
-            Positioned(
-              top: 20 + (_backgroundController.value * 40),
-              right: MediaQuery.of(context).size.width * 0.3 -
-                  (_backgroundController.value * 30),
-              child: AnimatedBuilder(
-                animation: _backgroundController,
-                builder: (context, child) {
-                  return Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: gfgAccent.withOpacity(0.4),
-                          blurRadius: 25,
-                          spreadRadius: 8,
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Main content
-            SingleChildScrollView(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0, vertical: 16),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 16),
-
-                        // Back button and logo
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(25),
-                                  onTap: () {
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => WelcomePage(),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(25),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: gfgGreen.withOpacity(0.1),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Icon(Icons.arrow_back,
-                                        color: gfgGreen),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Logo without border - just shadow
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: gfgGreen.withOpacity(0.2),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Image.asset(
-                                'assets/logo_only.png',
-                                width: 30,
-                                height: 30,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 40),
-
-                        // Login Title with gradient
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: ShaderMask(
-                            shaderCallback: (bounds) => LinearGradient(
-                              colors: [gfgGreen, gfgLightGreen],
-                            ).createShader(bounds),
-                            child: const Text(
-                              'Login Your\nAccount',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                height: 1.2,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 30),
-
-                        // Email Field
-                        AnimatedBuilder(
-                          animation: _emailFocus,
-                          builder: (context, child) {
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              height: _emailError.isNotEmpty ? 80 : 60,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            height: 60,
+                            child: TextField(
+                              controller: _emailController,
+                              focusNode: _emailFocus,
+                              style: const TextStyle(
+                                  color: Colors.black, fontSize: 16),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 18),
+                                prefixIcon: Icon(
+                                  Icons.email_outlined,
                                   color: _emailFocus.hasFocus
-                                      ? gfgGreen
-                                      : _emailError.isNotEmpty
-                                          ? Colors.red
-                                          : Colors.transparent,
-                                  width: 2,
+                                      ? geekGreen
+                                      : Colors.grey,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: _emailFocus.hasFocus
-                                        ? gfgGreen.withOpacity(0.2)
-                                        : Colors.black.withOpacity(0.05),
-                                    blurRadius: _emailFocus.hasFocus ? 12 : 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: Column(
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: TextField(
-                                        controller: _emailController,
-                                        focusNode: _emailFocus,
-                                        decoration: InputDecoration(
-                                          border: InputBorder.none,
-                                          icon: Icon(
-                                            Icons.email_outlined,
-                                            color: _emailFocus.hasFocus
-                                                ? gfgGreen
-                                                : Colors.grey,
-                                          ),
-                                          hintText: 'Enter Your Email',
-                                          hintStyle:
-                                              const TextStyle(fontSize: 16),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (_emailError.isNotEmpty)
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                            left: 40, bottom: 8),
-                                        child: Text(
-                                          _emailError,
-                                          style: const TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Password Field
-                        AnimatedBuilder(
-                          animation: _passwordFocus,
-                          builder: (context, child) {
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              height: _passwordError.isNotEmpty ? 80 : 60,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _passwordFocus.hasFocus
-                                      ? gfgGreen
-                                      : _passwordError.isNotEmpty
-                                          ? Colors.red
-                                          : Colors.transparent,
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: _passwordFocus.hasFocus
-                                        ? gfgGreen.withOpacity(0.2)
-                                        : Colors.black.withOpacity(0.05),
-                                    blurRadius:
-                                        _passwordFocus.hasFocus ? 12 : 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: Column(
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: TextField(
-                                        controller: _passwordController,
-                                        focusNode: _passwordFocus,
-                                        obscureText: _obscurePassword,
-                                        decoration: InputDecoration(
-                                          border: InputBorder.none,
-                                          icon: Icon(
-                                            Icons.lock_outline,
-                                            color: _passwordFocus.hasFocus
-                                                ? gfgGreen
-                                                : Colors.grey,
-                                          ),
-                                          hintText: 'Password',
-                                          hintStyle:
-                                              const TextStyle(fontSize: 16),
-                                          suffixIcon: Material(
-                                            color: Colors.transparent,
-                                            child: InkWell(
-                                              borderRadius:
-                                                  BorderRadius.circular(25),
-                                              onTap: () {
-                                                setState(() {
-                                                  _obscurePassword =
-                                                      !_obscurePassword;
-                                                });
-                                              },
-                                              child: Icon(
-                                                _obscurePassword
-                                                    ? Icons
-                                                        .visibility_off_outlined
-                                                    : Icons.visibility_outlined,
-                                                color: gfgGreen,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (_passwordError.isNotEmpty)
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                            left: 40, bottom: 8),
-                                        child: Text(
-                                          _passwordError,
-                                          style: const TextStyle(
-                                            color: Colors.red,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // Forget Password
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ForgotPasswordScreen(),
-                                ),
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor: gfgGreen,
-                            ),
-                            child: const Text(
-                              'Forget Password?',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Login Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 60,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: _isLoading ? null : _login,
-                              borderRadius: BorderRadius.circular(12),
-                              child: Ink(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [gfgGreen, gfgLightGreen],
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: gfgGreen.withOpacity(0.4),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 3,
-                                          ),
-                                        )
-                                      : const Text(
-                                          'Log In',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Sign up option
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              "Create New Account?",
-                              style: TextStyle(
-                                color: Colors.black54,
-                                fontSize: 15,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => SignUpPage()),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: gfgGreen,
-                              ),
-                              child: const Text(
-                                'Sign Up',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                hintText: 'Enter Your Email',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade600,
                                   fontSize: 16,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          if (_emailError.isNotEmpty)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 40, bottom: 8),
+                                child: Text(
+                                  _emailError,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
 
-                        const SizedBox(height: 30),
-                      ],
+                const SizedBox(height: 16),
+
+                // Password Field
+                AnimatedBuilder(
+                  animation: _passwordFocus,
+                  builder: (context, child) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _passwordFocus.hasFocus
+                              ? geekGreen
+                              : _passwordError.isNotEmpty
+                                  ? Colors.red
+                                  : geekGreen.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _passwordFocus.hasFocus
+                                ? geekGreen.withOpacity(0.2)
+                                : Colors.black.withOpacity(0.05),
+                            blurRadius: _passwordFocus.hasFocus ? 12 : 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            height: 60,
+                            child: TextField(
+                              controller: _passwordController,
+                              focusNode: _passwordFocus,
+                              obscureText: _obscurePassword,
+                              style: const TextStyle(
+                                  color: Colors.black, fontSize: 16),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 18),
+                                prefixIcon: Icon(
+                                  Icons.lock_outline,
+                                  color: _passwordFocus.hasFocus
+                                      ? geekGreen
+                                      : Colors.grey,
+                                ),
+                                hintText: 'Password',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 16,
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: geekGreen,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (_passwordError.isNotEmpty)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 40, bottom: 8),
+                                child: Text(
+                                  _passwordError,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 8),
+
+                // Forget Password
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: geekGreen,
+                    ),
+                    child: const Text(
+                      'Forget Password?',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-              ),
+
+                const SizedBox(height: 16),
+
+                // Login Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: geekGreen,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3,
+                            ),
+                          )
+                        : const Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Sign up option
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Create New Account? ",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 15,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignUpPage(),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: geekGreen,
+                      ),
+                      child: const Text(
+                        'Sign up',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 30),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -585,7 +585,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
                     Expanded(
                       child: Center(
                         child: Image.asset(
-                          'assets/logo_white.png',
+                          'assets/icons/logo_only_white.png',
                           height: 20,
                           fit: BoxFit.contain,
                         ),

@@ -86,14 +86,10 @@ class _CareerGoalsState extends State<CareerGoals> {
     try {
       widget.userResponse.careerGoals = _controller.text;
       
-      // Assume we use the existing ID if available
       final existingId = widget.userResponse.userTestId;
       
-      // Call backend to save test data (UserResponses)
-      // This returns the test ID (same as existingId if provided)
       final userTestId = await ApiService.submitTest(widget.userResponse);
 
-      // Now determine if we update the user's attempt list or add new
       int existingIndex = -1;
       
       if (existingId != null) {
@@ -106,11 +102,10 @@ class _CareerGoalsState extends State<CareerGoals> {
       }
 
       if (existingIndex != -1) {
-        // UPDATE existing attempt
         final attempt = Map<String, dynamic>.from(attempts[existingIndex]);
-        attempt['status'] = 'In progress'; // Update status
-        attempt['completedAt'] = DateTime.now().toIso8601String(); // Update timestamp
-        attemptNumber = attempt['attemptNumber']; // Keep existing attempt number
+        attempt['status'] = 'In progress';
+        attempt['completedAt'] = DateTime.now().toIso8601String();
+        attemptNumber = attempt['attemptNumber'];
         
         attempts[existingIndex] = attempt;
         
@@ -178,7 +173,7 @@ class _CareerGoalsState extends State<CareerGoals> {
                     padding: EdgeInsets.zero,
                   ),
                   Image.asset(
-                    'assets/logo_white.png',
+                    'assets/icons/logo_only_white.png',
                     height: 18,
                     fit: BoxFit.contain,
                   ),

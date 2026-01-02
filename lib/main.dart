@@ -1,4 +1,4 @@
-import 'package:code_map/screens/welcome_page.dart';
+import 'screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -45,9 +45,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'CodeMap: Navigate Your IT Future',
-      home: WelcomePage(),
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: SplashScreen(), // set SplashScreen as the starting screen
+      debugShowCheckedModeBanner: false, // disable the debug banner
     );
   }
 }

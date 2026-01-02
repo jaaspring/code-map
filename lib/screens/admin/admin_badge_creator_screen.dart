@@ -129,7 +129,7 @@ class _AdminBadgeCreatorScreenState extends State<AdminBadgeCreatorScreen> {
                     ),
                   ),
                   Image.asset(
-                    'assets/logo_only_white.png',
+                    'assets/icons/logo_only_white.png',
                     width: 50,
                     height: 50,
                     errorBuilder: (context, error, stackTrace) {

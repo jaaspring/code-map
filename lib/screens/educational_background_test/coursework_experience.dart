@@ -42,7 +42,7 @@ class _CourseworkExperienceState extends State<CourseworkExperience> {
                     padding: EdgeInsets.zero,
                   ),
                   Image.asset(
-                    'assets/logo_white.png',
+                    'assets/icons/logo_only_white.png',
                     height: 18,
                     fit: BoxFit.contain,
                   ),

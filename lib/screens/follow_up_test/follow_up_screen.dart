@@ -181,7 +181,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                     padding: EdgeInsets.zero,
                   ),
                   Image.asset(
-                    'assets/logo_white.png',
+                    'assets/icons/logo_only_white.png',
                     height: 18,
                     fit: BoxFit.contain,
                   ),

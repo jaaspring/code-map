@@ -303,7 +303,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
-            'assets/star_icon.png',
+            'assets/icons/star_icon.png',
             width: 14,
             height: 14,
             color: Colors.white,
@@ -726,7 +726,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
           if (hasMultipleJobs) ...[
             _buildNavButton(
               iconWidget: Image.asset(
-                'assets/left_arrow.png',
+                'assets/icons/left_arrow.png',
                 width: 20,
                 height: 20,
                 color: Colors.white,
@@ -805,7 +805,7 @@ class _RecentReportWidgetState extends State<RecentReportWidget> {
             const SizedBox(width: 12),
             _buildNavButton(
               iconWidget: Image.asset(
-                'assets/right_arrow.png',
+                'assets/icons/right_arrow.png',
                 width: 20,
                 height: 20,
                 color: Colors.white,
