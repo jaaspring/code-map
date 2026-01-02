@@ -63,7 +63,7 @@ class _ProgrammingLanguagesState extends State<ProgrammingLanguages> {
                     padding: EdgeInsets.zero,
                   ),
                   Image.asset(
-                    'assets/icons/logo_white.png',
+                    'assets/icons/logo_only_white.png',
                     height: 18,
                     fit: BoxFit.contain,
                   ),

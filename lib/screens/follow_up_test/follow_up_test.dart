@@ -492,6 +492,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
                 // Progress Label
                 Container(
                   width: double.infinity,
+                  alignment: Alignment.center,
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     "Question ${_currentIndex + 1} of ${widget.questions.length}",
@@ -503,6 +504,8 @@ class _FollowUpTestState extends State<FollowUpTest> {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 16),
 
                 // Badges
                 Wrap(
@@ -655,19 +658,6 @@ class _FollowUpTestState extends State<FollowUpTest> {
                         ),
                         const SizedBox(height: 20),
                       ],
-                    ),
-                  ),
-                ),
-
-                // Progress Label
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    "Question ${_currentIndex + 1} of ${widget.questions.length}",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white.withOpacity(0.5),
                     ),
                   ),
                 ),
