@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -11,13 +12,22 @@ class PdfService {
   ) async {
     final pdf = pw.Document();
 
+    // Load logo
+    Uint8List? logoData;
+    try {
+      final byteData = await rootBundle.load('assets/icons/logo_black.png');
+      logoData = byteData.buffer.asUint8List();
+    } catch (e) {
+      print("Error loading logo for PDF: $e");
+    }
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return [
-            _buildHeader(),
+            _buildHeader(logoData),
             pw.SizedBox(height: 20),
             _buildProfileSummary(reportData),
             pw.SizedBox(height: 20),
@@ -39,10 +49,20 @@ class PdfService {
     );
   }
 
-  static pw.Widget _buildHeader() {
+  static pw.Widget _buildHeader(Uint8List? logoData) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
+        if (logoData != null) ...[
+          pw.Center(
+            child: pw.Image(
+              pw.MemoryImage(logoData),
+              height: 50,
+              fit: pw.BoxFit.contain,
+            ),
+          ),
+          pw.SizedBox(height: 20),
+        ],
         pw.Text(
           "Career Analysis Report",
           style: pw.TextStyle(
@@ -197,8 +217,13 @@ class PdfService {
         pw.Column(
           children: [
             pw.Text("Skill Gap Radar Chart", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text(
+              "Visual representation of your skills compared to job requirements",
+              style: pw.TextStyle(fontSize: 10, color: PdfColor.fromInt(0xFF616161)),
+            ),
             pw.SizedBox(height: 10),
-            _buildImageFromBase64(charts['radar_chart']),
+            pw.Center(child: _buildImageFromBase64(charts['radar_chart'])),
             pw.SizedBox(height: 20),
           ],
         ),
@@ -210,8 +235,13 @@ class PdfService {
         pw.Column(
           children: [
             pw.Text("Result Chart", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text(
+              "Overview of your test performance and accuracy",
+              style: pw.TextStyle(fontSize: 10, color: PdfColor.fromInt(0xFF616161)),
+            ),
             pw.SizedBox(height: 10),
-            _buildImageFromBase64(charts['result_chart']),
+            pw.Center(child: _buildImageFromBase64(charts['result_chart'])),
           ],
         ),
       );
