@@ -25,7 +25,7 @@ class AssessmentScreen extends StatelessWidget {
                     padding: EdgeInsets.zero,
                   ),
                   Image.asset(
-                    'assets/logo_white.png',
+                    'assets/icons/logo_only_white.png',
                     height: 18,
                     fit: BoxFit.contain,
                   ),
@@ -36,7 +36,7 @@ class AssessmentScreen extends StatelessWidget {
               Column(
                 children: [
                   Image.asset(
-                    'assets/logo_white.png',
+                    'assets/icons/logo_only_white.png',
                     height: 50,
                     fit: BoxFit.contain,
                   ),
