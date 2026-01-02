@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:code_map/services/api_service.dart';
+import '../../services/pdf_service.dart';
 import '../career_roadmap/career_roadmap.dart';
 
 
@@ -397,24 +398,28 @@ class _CareerAnalysisReportState extends State<CareerAnalysisReport> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with back button and logo
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        color: Color.fromARGB(255, 255, 255, 255)),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                  ),
-                  Image.asset(
-                    'assets/icons/logo_only_white.png',
-                    height: 18,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
+                // Header with back button and centered logo
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back,
+                          color: Color.fromARGB(255, 255, 255, 255)),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                    ),
+                    Expanded(
+                      child: Center(
+                        child: Image.asset(
+                          'assets/icons/logo_only_white.png',
+                          height: 22, 
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48), // Balance for back button
+                  ],
+                ),
               const SizedBox(height: 20),
               
               const Text(
@@ -917,6 +922,52 @@ class _CareerAnalysisReportState extends State<CareerAnalysisReport> {
                           ),
                         ),
               ),
+              const SizedBox(height: 16),
+              if (!isLoading && reportData != null)
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      try {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Generating PDF..."),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                        await PdfService.generateCareerReport(
+                          reportData!,
+                          gapAnalysisData,
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Failed to export PDF: $e"),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.download_rounded, color: Colors.white),
+                    label: const Text(
+                      "Download / Export as PDF",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4BC945),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 4,
+                      shadowColor: const Color(0xFF4BC945).withOpacity(0.4),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
