@@ -505,3 +505,47 @@ def get_career_roadmap(user_test_id: str, job_match_id: str) -> dict:
     roadmap_id = f"{user_test_id}_{job_match_id}"
     doc = db.collection("career_roadmap").document(roadmap_id).get()
     return doc.to_dict() if doc.exists else None
+
+
+# -----------------------
+# Deletion Helpers
+# -----------------------
+def delete_document(collection: str, doc_id: str):
+    """Generic delete function."""
+    print(f"[DEBUG] Deleting {collection}/{doc_id}")
+    db.collection(collection).document(doc_id).delete()
+
+
+def delete_documents_by_query(collection: str, field: str, value: str):
+    """Delete all documents in a collection where field == value."""
+    print(f"[DEBUG] Query deleting {collection} where {field} == {value}")
+    docs = db.collection(collection).where(field, "==", value).stream()
+    for doc in docs:
+        print(f"  - Deleting {doc.id}")
+        doc.reference.delete()
+
+
+def delete_career_recommendation_with_subcollections(user_test_id: str):
+    """
+    Delete career recommendations and their nested job_matches subcollections.
+    """
+    print(f"[DEBUG] Deleting career recommendations for user_test_id: {user_test_id}")
+    recs = (
+        db.collection("career_recommendations")
+        .where("user_test_id", "==", user_test_id)
+        .stream()
+    )
+
+    for rec in recs:
+        # Delete job_matches subcollection
+        job_matches = rec.reference.collection("job_matches").stream()
+        for job in job_matches:
+            print(f"  - Deleting job_match {job.id}")
+            job.reference.delete()
+        
+        # Delete the detailed career analysis or any other subcollections if they exist?
+        # Based on current knowledge, only job_matches is a subcollection.
+
+        # Delete the parent recommendation document
+        print(f"  - Deleting recommendation {rec.id}")
+        rec.reference.delete()

@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import assessment_routes
+from routes import assessment_routes, user_routes
 from core.model_loader import initialize_ai_models, is_initialized
 
 # Create FastAPI app
@@ -25,3 +25,4 @@ async def on_startup():
 
 # Register routers
 app.include_router(assessment_routes.router)
+app.include_router(user_routes.router)

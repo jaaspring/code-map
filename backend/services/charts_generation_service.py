@@ -67,7 +67,7 @@ def _generate_generic_radar_chart(labels, user_level, required_level, title):
     ax.legend(loc="upper right")
 
     buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=300, bbox_inches="tight")
+    plt.savefig(buf, format="png", dpi=120, bbox_inches="tight")
     buf.seek(0)
     plt.close()
 
@@ -128,7 +128,7 @@ def generate_bar_chart(data: dict):
         )
 
     buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=300, bbox_inches="tight")
+    plt.savefig(buf, format="png", dpi=120, bbox_inches="tight")
     buf.seek(0)
     plt.close()
 

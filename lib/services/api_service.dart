@@ -470,4 +470,23 @@ class ApiService {
           "Failed to load recommended jobs: ${response.statusCode}");
     }
   }
+
+  // deactivate user account
+  static Future<void> deactivateUser(String userId) async {
+    final url = Uri.parse("$baseUrl/users/$userId");
+    print('DEBUG: Deactivating user: $baseUrl/users/$userId');
+
+    final response = await http.delete(url);
+
+    print('DEBUG: Deactivate user status: ${response.statusCode}');
+    print('DEBUG: Deactivate user body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      print("User deactivation success: $decoded");
+    } else {
+      throw Exception(
+          "Failed to deactivate user: ${response.statusCode} ${response.body}");
+    }
+  }
 }

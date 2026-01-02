@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../screens/login_screen.dart';
+import '../../services/api_service.dart';
 
 class DeactivateAccountScreen extends StatefulWidget {
   const DeactivateAccountScreen({Key? key}) : super(key: key);
@@ -51,11 +52,8 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
       // Reauthenticate user
       await user.reauthenticateWithCredential(credential);
 
-      // Delete user data from Firestore first
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .delete();
+      // Call backend to delete user data and assessment data
+      await ApiService.deactivateUser(user.uid);
 
       // Then delete user authentication account
       await user.delete();
