@@ -45,10 +45,14 @@ class ApiService {
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
       print("Submit Success: $decoded");
-      final id = decoded['id'];
+      
+      // Check for various possible key names
+      final id = decoded['id'] ?? decoded['userTestId'] ?? decoded['user_test_id'];
+      
       if (id != null) {
         return id.toString();
       } else {
+        print("WARNING: No ID found in response: ${response.body}");
         return "N/A";
       }
     } else {
