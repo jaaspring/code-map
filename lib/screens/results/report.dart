@@ -988,7 +988,7 @@ class _CareerAnalysisReportState extends State<CareerAnalysisReport> {
                       shadowColor: const Color(0xFF4BC945).withOpacity(0.4),
                     ),
                     child: const Text(
-                      "View your Personalized Career Roadmap",
+                      "View Career Roadmap",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
