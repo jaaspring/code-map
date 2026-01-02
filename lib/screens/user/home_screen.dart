@@ -326,6 +326,14 @@ class _HomePageState extends State<HomePage>
                       ScaleTransition(
                         scale: _pulseAnimation,
                         child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AssessmentScreen(),
+                              ),
+                            );
+                          },
                           onTapDown: (_) =>
                               setState(() => _isAssessmentPressed = true),
                           onTapUp: (_) =>
