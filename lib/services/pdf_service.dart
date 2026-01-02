@@ -230,6 +230,24 @@ class PdfService {
       );
     }
 
+    if (charts['knowledge_radar_chart'] != null && charts['knowledge_radar_chart'].toString().isNotEmpty) {
+      chartWidgets.add(
+        pw.Column(
+          children: [
+            pw.Text("Knowledge Gap Radar Chart", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text(
+              "Visual representation of your knowledge compared to job requirements",
+              style: pw.TextStyle(fontSize: 10, color: PdfColor.fromInt(0xFF616161)),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Center(child: _buildImageFromBase64(charts['knowledge_radar_chart'])),
+            pw.SizedBox(height: 20),
+          ],
+        ),
+      );
+    }
+
     if (charts['result_chart'] != null && charts['result_chart'].toString().isNotEmpty) {
       chartWidgets.add(
         pw.Column(
