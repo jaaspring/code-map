@@ -147,6 +147,133 @@ class _FollowUpTestState extends State<FollowUpTest> {
     }
   }
 
+  Widget _buildCodeView(String code, String? language) {
+    final lines = code.split('\n');
+    final lineCount = lines.length;
+    const double lineHeight = 24.0;
+
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E1E1E), // Dark gray background
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Tab bar background
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: Color(0xFF252526), // Dark tab bar background
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                // Active Tab
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1E1E1E), // Matches code background
+                    border: Border(
+                      top: BorderSide(
+                        color: Color(0xFF4BC945), // Accent color top border
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                       const Icon(
+                        Icons.code,
+                        size: 16,
+                        color: Color(0xFF4BC945),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        language ?? 'Code',
+                        style: const TextStyle(
+                          fontFamily: 'GoogleSansCode',
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Line numbers
+                Container(
+                  width: 45,
+                  decoration: const BoxDecoration(
+                    color: Color(
+                        0xFF2D2D2D), // Light gray background for line numbers
+                    border: Border(
+                      right: BorderSide(color: Color(0xFF3E3E3E), width: 1),
+                    ),
+                  ),
+                  child: Column(
+                    children: List.generate(
+                      lineCount,
+                      (index) => Container(
+                        height: lineHeight,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Text(
+                          '${index + 1}',
+                          style: const TextStyle(
+                            fontFamily: 'GoogleSansCode',
+                            fontSize: 13,
+                            color: Color(0xFF858585),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Code content
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: lines.map((line) {
+                        return Container(
+                          height: lineHeight,
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.only(left: 16, right: 16),
+                          child: Text(
+                            line,
+                            style: const TextStyle(
+                              fontFamily: 'GoogleSansCode',
+                              fontSize: 13,
+                              color: Color(0xFFD4D4D4),
+                            ),
+                            softWrap: false,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildQuestionContent(String questionText) {
     final currentQuestion = widget.questions[_currentIndex];
     final String? code = currentQuestion['code'];
@@ -154,9 +281,6 @@ class _FollowUpTestState extends State<FollowUpTest> {
 
     // if it's a coding question with separate code field
     if (code != null && code.isNotEmpty) {
-      final lines = code.split('\n');
-      final lineCount = lines.length;
-
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -173,138 +297,7 @@ class _FollowUpTestState extends State<FollowUpTest> {
               ),
             ),
           ),
-
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E), // Dark gray background
-              borderRadius:
-                  BorderRadius.circular(0), // Square corners like image
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                  // Tab bar background
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF252526), // Dark tab bar background
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        // Active Tab
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF1E1E1E), // Matches code background
-                            border: Border(
-                              top: BorderSide(
-                                color: Color(0xFF4BC945), // Accent color top border
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Optional: File icon
-                              const Icon(
-                                Icons.code,
-                                size: 16,
-                                color: Color(0xFF4BC945),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                language ?? 'Code',
-                                style: const TextStyle(
-                                  fontFamily: 'GoogleSansCode',
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Close icon for tab look
-                              const Icon(
-                                Icons.close,
-                                size: 14,
-                                color: Colors.white54,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                Container(
-                  padding: const EdgeInsets.only(top: 0, bottom: 0),
-                  child: IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Line numbers column - Light gray background
-                        Container(
-                          width: 50,
-                          padding:
-                              const EdgeInsets.only(top: 8, bottom: 8, right: 12),
-                          decoration: const BoxDecoration(
-                            color: Color(
-                                0xFF2D2D2D), // Light gray background for line numbers
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: List.generate(
-                              lineCount,
-                              (index) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 3.5),
-                                child: Text(
-                                  '${index + 1}',
-                                  style: const TextStyle(
-                                    fontFamily: 'GoogleSansCode',
-                                    fontSize: 14,
-                                    color:
-                                        Color(0xFF858585), // Medium gray numbers
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-  
-                        // Code content
-                        Expanded(
-                          child: Container(
-                            color: const Color(
-                                0xFF1E1E1E), // Dark background for code
-                            child: SingleChildScrollView(
-                              child: Container(
-                                padding: const EdgeInsets.only(
-                                    top: 8, bottom: 8, left: 16, right: 16),
-                                child: SelectableText(
-                                  code,
-                                  style: const TextStyle(
-                                    fontFamily: 'GoogleSansCode',
-                                    fontSize: 14,
-                                    color:
-                                        Color(0xFFD4D4D4), // Light gray code text
-                                    height: 1.6,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildCodeView(code, language),
         ],
       );
     }
@@ -357,129 +350,10 @@ class _FollowUpTestState extends State<FollowUpTest> {
       }
 
       String codeContent = match.group(1)!.trim();
-      final lines = codeContent.split('\n');
-      final lineCount = lines.length;
-
       parts.add(
         Container(
-          width: double.infinity,
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1E1E),
-            borderRadius: BorderRadius.circular(0),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Tab bar background
-              Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF252526), // Dark tab bar background
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    // Active Tab
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E1E1E), // Matches code background
-                        border: Border(
-                          top: BorderSide(
-                            color: Color(0xFF4BC945), // Accent color top border
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.code,
-                            size: 16,
-                            color: Color(0xFF4BC945),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Code',
-                            style: TextStyle(
-                              fontFamily: 'GoogleSansCode',
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Icon(
-                            Icons.close,
-                            size: 14,
-                            color: Colors.white54,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.only(top: 0, bottom: 0),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        width: 50,
-                        padding:
-                            const EdgeInsets.only(top: 8, bottom: 8, right: 12),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF2D2D2D),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: List.generate(
-                            lineCount,
-                            (index) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 3.5),
-                              child: Text(
-                                '${index + 1}',
-                                style: const TextStyle(
-                                  fontFamily: 'GoogleSansCode',
-                                  fontSize: 14,
-                                  color: Color(0xFF858585),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          color: const Color(0xFF1E1E1E),
-                          child: SingleChildScrollView(
-                            child: Container(
-                              padding: const EdgeInsets.only(
-                                  top: 8, bottom: 8, left: 16, right: 16),
-                              child: SelectableText(
-                                codeContent,
-                                style: const TextStyle(
-                                  fontFamily: 'GoogleSansCode',
-                                  fontSize: 14,
-                                  color: Color(0xFFD4D4D4),
-                                  height: 1.6,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+          child: _buildCodeView(codeContent, 'Code'),
         ),
       );
 
@@ -614,6 +488,21 @@ class _FollowUpTestState extends State<FollowUpTest> {
                   ],
                 ),
                 const SizedBox(height: 16),
+
+                // Progress Label
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    "Question ${_currentIndex + 1} of ${widget.questions.length}",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.7),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
 
                 // Badges
                 Wrap(
