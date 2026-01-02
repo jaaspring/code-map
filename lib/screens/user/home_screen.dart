@@ -11,6 +11,20 @@ import 'assessment_screen.dart';
 import 'career_roadmap_screen.dart';
 import 'report_history.dart';
 import 'recent_report_widget.dart';
+import '../../models/user_responses.dart';
+import '../../services/assessment_state_service.dart';
+import '../follow_up_test/follow_up_screen.dart';
+import '../educational_background_test/educational_background_screen.dart';
+import '../educational_background_test/education_level.dart';
+import '../educational_background_test/education_major.dart';
+import '../educational_background_test/cgpa.dart';
+import '../educational_background_test/coursework_experience.dart';
+import '../educational_background_test/programming_languages.dart';
+import '../educational_background_test/thesis_topic.dart';
+import '../skill_reflection_test/skill_reflection_screen.dart';
+import '../skill_reflection_test/skill_reflection_test.dart';
+import '../skill_reflection_test/thesis_findings.dart';
+import '../skill_reflection_test/career_goals.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -142,6 +156,77 @@ class _HomePageState extends State<HomePage>
     ).then((_) {
       _fetchProfileData();
     });
+  }
+
+  void _resumeAssessment(BuildContext context, String testId, int attemptNumber) async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final draft = await AssessmentStateService.fetchDraft(testId);
+    
+    if (!mounted) return;
+    Navigator.pop(context); // Hide loading
+
+    if (draft != null) {
+      final responses = UserResponses.fromJson(draft['responses']);
+      final step = draft['currentStep'];
+
+      Widget nextScreen;
+      switch (step) {
+        case 'EducationalBackgroundTestScreen':
+          nextScreen = EducationalBackgroundTestScreen(existingUserTestId: testId);
+          break;
+        case 'EducationLevel':
+          nextScreen = EducationLevel(userResponse: responses);
+          break;
+        case 'EducationMajor':
+          nextScreen = EducationMajor(userResponse: responses);
+          break;
+        case 'Cgpa':
+          nextScreen = Cgpa(userResponse: responses);
+          break;
+        case 'CourseworkExperience':
+          nextScreen = CourseworkExperience(userResponse: responses);
+          break;
+        case 'ProgrammingLanguages':
+          nextScreen = ProgrammingLanguages(userResponse: responses);
+          break;
+        case 'ThesisTopic':
+          nextScreen = ThesisTopic(userResponse: responses);
+          break;
+        case 'SkillReflectionScreen':
+          nextScreen = SkillReflectionScreen(userResponse: responses);
+          break;
+        case 'SkillReflectionTest':
+          nextScreen = SkillReflectionTest(userResponse: responses);
+          break;
+        case 'ThesisFindings':
+          nextScreen = ThesisFindings(userResponse: responses);
+          break;
+        case 'CareerGoals':
+          nextScreen = CareerGoals(userResponse: responses);
+          break;
+        case 'FollowUpScreen':
+        case 'FollowUpTest':
+             nextScreen = FollowUpScreen(userResponse: responses, userTestId: testId, attemptNumber: attemptNumber); 
+             break;
+        default:
+          nextScreen = AssessmentScreen(existingUserTestId: testId);
+      }
+      Navigator.push(context, MaterialPageRoute(builder: (_) => nextScreen));
+    } else {
+      // Fallback if no draft found but we have an ID
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AssessmentScreen(existingUserTestId: testId),
+        ),
+      );
+    }
   }
 
   // Modified to use internal state and content switching
@@ -322,107 +407,155 @@ class _HomePageState extends State<HomePage>
 
                       const SizedBox(height: 14),
 
-                      // Career Assessment with pulse animation - NO NAVIGATION
-                      ScaleTransition(
-                        scale: _pulseAnimation,
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AssessmentScreen(),
-                              ),
-                            );
-                          },
-                          onTapDown: (_) =>
-                              setState(() => _isAssessmentPressed = true),
-                          onTapUp: (_) =>
-                              setState(() => _isAssessmentPressed = false),
-                          onTapCancel: () =>
-                              setState(() => _isAssessmentPressed = false),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [geekGreen, geekDarkGreen],
-                              ),
-                              borderRadius: BorderRadius.circular(18),
-                              border: _isAssessmentPressed
-                                  ? Border.all(color: Colors.white, width: 2)
-                                  : null,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: geekGreen.withOpacity(
-                                      _isAssessmentPressed ? 0.5 : 0.35),
-                                  blurRadius: _isAssessmentPressed ? 20 : 15,
-                                  offset: const Offset(0, 6),
+                      // Career Assessment with pulse animation
+                      StreamBuilder<DocumentSnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(_auth.currentUser?.uid)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          bool canResume = false;
+                          Map<String, dynamic>? pendingAttempt;
+                          int attemptNumber = 1;
+
+                          if (snapshot.hasData && snapshot.data!.exists) {
+                            final data = snapshot.data!.data() as Map<String, dynamic>?;
+                            final attempts = data?['assessmentAttempts'] as List<dynamic>? ?? [];
+
+                            if (attempts.isNotEmpty) {
+                              // Sort by completedAt to find the latest
+                                attempts.sort((a, b) {
+                                  String? dateA = a['completedAt'];
+                                  String? dateB = b['completedAt'];
+                                  if (dateA == null) return -1;
+                                  if (dateB == null) return 1;
+                                  return DateTime.parse(dateA).compareTo(DateTime.parse(dateB));
+                                });
+                                
+                              final lastAttempt = attempts.last;
+                              final status = lastAttempt['status'];
+                              if (status == 'Abandoned' || status == 'In progress') {
+                                canResume = true;
+                                pendingAttempt = lastAttempt;
+                                attemptNumber = lastAttempt['attemptNumber'] ?? attempts.length;
+                              }
+                              // If specific logic dictates attemptNumber is count + 1 for new, but here we resume existing
+                            }
+                          }
+
+                          String cardTitle = canResume ? 'Resume Assessment' : 'Career Assessment';
+                          String cardDesc = canResume 
+                              ? 'Continue where you left off.' 
+                              : 'Start navigating your IT future.';
+                          String btnText = canResume ? 'Resume' : 'Get Started';
+
+                          return ScaleTransition(
+                            scale: _pulseAnimation,
+                            child: GestureDetector(
+                              onTap: () {
+                                if (canResume && pendingAttempt != null) {
+                                  final testId = pendingAttempt['testId'];
+                                  _resumeAssessment(context, testId, attemptNumber);
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const AssessmentScreen(),
+                                    ),
+                                  );
+                                }
+                              },
+                              onTapDown: (_) =>
+                                  setState(() => _isAssessmentPressed = true),
+                              onTapUp: (_) =>
+                                  setState(() => _isAssessmentPressed = false),
+                              onTapCancel: () =>
+                                  setState(() => _isAssessmentPressed = false),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [geekGreen, geekDarkGreen],
+                                  ),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: _isAssessmentPressed
+                                      ? Border.all(color: Colors.white, width: 2)
+                                      : null,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: geekGreen.withOpacity(
+                                          _isAssessmentPressed ? 0.5 : 0.35),
+                                      blurRadius: _isAssessmentPressed ? 20 : 15,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            transform: _isAssessmentPressed
-                                ? Matrix4.identity().scaled(0.98)
-                                : Matrix4.identity(),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Career Assessment',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Start navigating your IT future.',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.max,
-                                    children: const [
-                                      Text(
-                                        'Get Started',
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(width: 8),
-                                      Icon(
-                                        Icons.arrow_forward,
+                                transform: _isAssessmentPressed
+                                    ? Matrix4.identity().scaled(0.98)
+                                    : Matrix4.identity(),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      cardTitle,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
                                         color: Colors.black,
-                                        size: 18,
+                                        letterSpacing: 0.3,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      cardDesc,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.black87,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.max,
+                                        children: [
+                                          Text(
+                                            btnText,
+                                            style: const TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Icon(
+                                            Icons.arrow_forward,
+                                            color: Colors.black,
+                                            size: 18,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        }
                       ),
 
                       const SizedBox(height: 18),
