@@ -7,7 +7,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.schema import SystemMessage, HumanMessage
-from .gpt_oss.gpt_oss_wrapper import GPTOSSWrapper
+from .claude_agent.claude_wrapper import ClaudeWrapper
 
 import sys
 
@@ -26,7 +26,7 @@ if not OPENAI_API_KEY:
 # Initialize LLM
 # -----------------------------
 llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
-oss_llm = GPTOSSWrapper(endpoint_url="http://localhost:5001/validate", temperature=0.0)
+validator_llm = ClaudeWrapper(endpoint_url="http://localhost:5001/validate", temperature=0.0)
 
 # -----------------------------
 # System Message
@@ -117,7 +117,7 @@ Requirements:
 )
 
 # create validation chain prompt
-oss_validation_prompt = PromptTemplate(
+claude_validation_prompt = PromptTemplate(
     input_variables=["mcqs"],
     template="""
 You are a quality control agent for multiple-choice questions.
@@ -143,7 +143,7 @@ non_coding_questions_chain = LLMChain(
 )
 coding_mcqs_chain = LLMChain(llm=llm, prompt=coding_mcqs_prompt)
 non_coding_mcqs_chain = LLMChain(llm=llm, prompt=non_coding_mcqs_prompt)
-oss_validation_chain = LLMChain(llm=oss_llm, prompt=oss_validation_prompt)
+claude_validation_chain = LLMChain(llm=validator_llm, prompt=claude_validation_prompt)
 
 
 def extract_json_from_response(text):
@@ -212,8 +212,8 @@ def validate_question_structure(questions):
     return valid_questions
 
 
-def run_oss_validation(mcqs, chain):
-    """Run OSS validation safely and fallback to original if OSS fails"""
+def run_claude_validation(mcqs, chain):
+    """Run Claude validation safely and fallback to original if validation fails"""
     # flags hallucination/suggests corrections
     # this line sends the MCQs to the OSS agent for validation.
     # OSS checks for inconsistencies, hallucinations, or errors in options/answers
@@ -222,7 +222,7 @@ def run_oss_validation(mcqs, chain):
         mcqs_json = json.dumps(mcqs)
         prompt_text = f"Validate these MCQs: {mcqs_json}"
         
-        print(f"[OSS DEBUG] Sending {len(mcqs)} MCQs for validation...")
+        print(f"[Claude Agent] Sending {len(mcqs)} MCQs for validation...")
 
         # send properly formatted request
         response = chain.run({"mcqs": prompt_text})
@@ -231,7 +231,7 @@ def run_oss_validation(mcqs, chain):
         if isinstance(validated, list) and validated:
             # Check for differences between original and validated
             if len(validated) != len(mcqs):
-                print(f"[OSS DEBUG] Question count changed: {len(mcqs)} -> {len(validated)}")
+                print(f"[Claude Agent] Question count changed: {len(mcqs)} -> {len(validated)}")
             
             # Compare each question for changes
             changes_detected = False
@@ -268,21 +268,21 @@ def run_oss_validation(mcqs, chain):
                     
                     if changes:
                         changes_detected = True
-                        print(f"[OSS CORRECTION] Question {i+1} corrected:")
+                        print(f"[Claude Agent CORRECTION] Question {i+1} corrected:")
                         for change in changes:
                             print(f"  - {change}")
             
             if not changes_detected:
-                print("[OSS DEBUG] All questions passed validation without changes")
+                print("[Claude Agent DEBUG] All questions passed validation without changes")
             
-            print(f"[OSS SUCCESS] Validated {len(validated)} MCQs")
+            print(f"[Claude Agent SUCCESS] Validated {len(validated)} MCQs")
             return validated
         
-        print("[OSS WARNING] Validation returned empty or invalid, using original MCQs.")
+        print("[Claude Agent WARNING] Validation returned empty or invalid, using original MCQs.")
         return mcqs
     
     except Exception as e:
-        print("[OSS ERROR] Exception during validation, using original MCQs:", e)
+        print("[Claude Agent ERROR] Exception during validation, using original MCQs:", e)
         return mcqs
 
 def generate_questions(skill_reflection: str, thesis_findings: str, career_goals: str):
@@ -365,12 +365,12 @@ def generate_questions(skill_reflection: str, thesis_findings: str, career_goals
     # validate coding MCQs
     if coding_mcqs:
         coding_mcqs = validate_question_structure(coding_mcqs)
-        coding_mcqs = run_oss_validation(coding_mcqs, oss_validation_chain)
+        coding_mcqs = run_claude_validation(coding_mcqs, claude_validation_chain)
 
     # validate non-coding MCQs
     if non_coding_mcqs:
         non_coding_mcqs = validate_question_structure(non_coding_mcqs)
-        non_coding_mcqs = run_oss_validation(non_coding_mcqs, oss_validation_chain)
+        non_coding_mcqs = run_claude_validation(non_coding_mcqs, claude_validation_chain)
 
     all_questions = coding_mcqs + non_coding_mcqs
     print("[DEBUG] Total questions generated:", len(all_questions))

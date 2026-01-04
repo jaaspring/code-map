@@ -3,13 +3,13 @@ from typing import Optional, List
 import requests
 
 
-class GPTOSSWrapper(LLM):
+class ClaudeWrapper(LLM):
     endpoint_url: str
     temperature: float = 0.0
 
     @property
     def _llm_type(self) -> str:
-        return "gpt-oss"
+        return "claude-validator"
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         payload = {

@@ -9,6 +9,8 @@ from models.firestore_models import (
     get_career_roadmap,
     get_user_job_skill_matches,
 )
+from core.database import db
+from .claude_agent.claude_wrapper import ClaudeWrapper
 
 # -----------------------------
 # Load environment variables
@@ -22,6 +24,7 @@ if not OPENAI_API_KEY:
 # Initialize LLM
 # -----------------------------
 llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+validator_llm = ClaudeWrapper(endpoint_url="http://localhost:5001/chat", temperature=0.1)
 
 
 def generate_roadmap_with_openai(skill_status: dict, knowledge_status: dict) -> dict:
@@ -84,6 +87,67 @@ def generate_roadmap_with_openai(skill_status: dict, knowledge_status: dict) -> 
         print(f"OpenAI API error: {e}")
 
 
+def refine_roadmap_with_claude(draft_roadmap: dict, user_context: dict) -> dict:
+    """
+    Use Claude Opus to critique and refine the draft roadmap based on specific user context.
+    """
+    print("[Claude Agent] Refining roadmap with user context...")
+    
+    prompt = f"""
+    You are a Senior Career Coach and Technical Reviewer.
+    
+    CRITIQUE AND REFINE this draft career roadmap.
+    
+    USER CONTEXT:
+    - Skill Reflection: "{user_context.get('skillReflection')}"
+    - Thesis Findings: "{user_context.get('thesisFindings')}"
+    - Career Goals: "{user_context.get('careerGoals')}"
+    
+    DRAFT ROADMAP:
+    {json.dumps(draft_roadmap, indent=2)}
+    
+    TASK:
+    1. Review the "sub_topics" for specificity and actionability.
+    2. Ensure the roadmap directly helps the user achieve their Career Goals given their current Skills.
+    3. If the user mentioned specific weak areas in Skill Reflection, ensuring those are covered in depth.
+    4. If the user mentioned Thesis Findings, verify if they are relevant (keep them) or if the roadmap needs to bridge them to the job requirements.
+    5. REWRITE the "sub_topics" to be more specific (e.g., instead of "Learn Python", say "Advanced Python data structures for Data Science").
+    6. Keep the same "topics" keys and structure.
+    
+    OUTPUT:
+    Return ONLY valid JSON with the exact same structure as the draft, but with refined content:
+    {{
+        "topics": {{ "Main Topic 1": "Level", ... }},
+        "sub_topics": {{ "Main Topic 1": ["Detailed Subtopic 1", ...], ... }}
+    }}
+    """
+    
+    try:
+        # Use ClaudeWrapper to validate/generate
+        # We wrapped it in a chain-like structure in previous files, but ClaudeWrapper has .invoke or .run?
+        # Let's check ClaudeWrapper implementation or usage.
+        # In questions_generation_service: `run_claude_validation(..., Chain(llm=validator_llm))`
+        # ClaudeWrapper inherits from LLM? No, checking usages.
+        # It seems we treat it as a LangChain LLM or similar. 
+        # Ideally we just call it. But wait, ClaudeWrapper might expect a prompt string.
+        
+        response = validator_llm.invoke(prompt)
+        
+        # Parse JSON from Claude's response (using regex for safety)
+        json_match = re.search(r"\{.*\}", response, re.DOTALL)
+        if json_match:
+            refined_data = json.loads(json_match.group())
+            print("[Claude Agent] Roadmap refined successfully.")
+            return refined_data
+        else:
+            print("[Claude Agent WARNING] Could not parse JSON, returning draft.")
+            return draft_roadmap
+            
+    except Exception as e:
+        print(f"[Claude Agent ERROR] Refinement failed: {e}")
+        return draft_roadmap
+
+
 def resolve_job_match_id(user_test_id: str, job_index: str) -> str:
     """
     Convert UI job_index (0,1,2...) into persistent job_match_id
@@ -143,10 +207,26 @@ def compute_career_roadmaps(user_test_id: str) -> dict:
 
             print(f"Missing skills/knowledge: {missing_skills}")
 
-            # generate roadmap content using OpenAI
-            roadmap_content = generate_roadmap_with_openai(
+            # Fetch user context for Claude
+            user_doc = db.collection("user_tests").document(user_test_id).get()
+            user_data = user_doc.to_dict() if user_doc.exists else {}
+            
+            user_context = {
+                "skillReflection": user_data.get("skillReflection", ""),
+                "thesisFindings": user_data.get("thesisFindings", ""),
+                "careerGoals": user_data.get("careerGoals", "")
+            }
+
+            # 1. Generate Draft (GPT-4o)
+            draft_roadmap = generate_roadmap_with_openai(
                 skill_status, knowledge_status
             )
+            
+            # 2. Refine (Claude Opus)
+            if draft_roadmap:
+                roadmap_content = refine_roadmap_with_claude(draft_roadmap, user_context)
+            else:
+                roadmap_content = {}
 
             print(f"OpenAI response for {job_match_id}:")
             print(f"Topics: {list(roadmap_content.get('topics', {}).keys())}")
