@@ -50,16 +50,7 @@ class _SkillReflectionTestState extends State<SkillReflectionTest> {
       return;
     }
 
-    if (_charCount < 500) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Please write at least 500 characters. Current count: $_charCount'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
+
     widget.userResponse.skillReflection = _controller.text;
 
     if (widget.userResponse.educationLevel == "Doctorate (PhD)") {
@@ -167,6 +158,7 @@ class _SkillReflectionTestState extends State<SkillReflectionTest> {
                     ),
                     maxLines: null,
                     expands: true,
+                    maxLength: 250,
                     textAlignVertical: TextAlignVertical.top,
                   ),
                 ),
@@ -175,13 +167,11 @@ class _SkillReflectionTestState extends State<SkillReflectionTest> {
 
               // Character count
               Text(
-                'Character count: $_charCount/500',
+                'Character count: $_charCount/250',
                 textAlign: TextAlign.right,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: _charCount < 500
-                      ? const Color.fromARGB(136, 255, 255, 255)
-                      : const Color(0xFF4BC945),
+                  color: Color.fromARGB(136, 255, 255, 255),
                 ),
               ),
               const SizedBox(height: 24),

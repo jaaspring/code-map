@@ -68,16 +68,7 @@ class _CareerGoalsState extends State<CareerGoals> {
       return;
     }
 
-    if (_charCount < 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Please write at least 200 characters. Current count: $_charCount'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
+
 
     setState(() {
       _isSubmitting = true;
@@ -258,6 +249,7 @@ class _CareerGoalsState extends State<CareerGoals> {
                     ),
                     maxLines: null,
                     expands: true,
+                    maxLength: 250,
                     textAlignVertical: TextAlignVertical.top,
                   ),
                 ),
@@ -265,13 +257,11 @@ class _CareerGoalsState extends State<CareerGoals> {
               const SizedBox(height: 12),
 
               Text(
-                'Character count: $_charCount/200',
+                'Character count: $_charCount/250',
                 textAlign: TextAlign.right,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: _charCount < 200
-                      ? const Color.fromARGB(136, 255, 255, 255)
-                      : const Color(0xFF4BC945),
+                  color: Color.fromARGB(136, 255, 255, 255),
                 ),
               ),
               const SizedBox(height: 24),

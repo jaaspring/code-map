@@ -63,16 +63,7 @@ class _ThesisFindingsState extends State<ThesisFindings> {
       return;
     }
 
-    if (_charCount < 500) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Please write at least 500 characters. Current count: $_charCount'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
+
     widget.userResponse.thesisFindings = _controller.text;
 
     Navigator.push(
@@ -170,6 +161,7 @@ class _ThesisFindingsState extends State<ThesisFindings> {
                     ),
                     maxLines: null,
                     expands: true,
+                    maxLength: 250,
                     textAlignVertical: TextAlignVertical.top,
                   ),
                 ),
@@ -177,13 +169,11 @@ class _ThesisFindingsState extends State<ThesisFindings> {
               const SizedBox(height: 12),
 
               Text(
-                'Character count: $_charCount/500',
+                'Character count: $_charCount/250',
                 textAlign: TextAlign.right,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: _charCount < 500
-                      ? const Color.fromARGB(136, 255, 255, 255)
-                      : const Color(0xFF4BC945),
+                  color: Color.fromARGB(136, 255, 255, 255),
                 ),
               ),
               const SizedBox(height: 24),
