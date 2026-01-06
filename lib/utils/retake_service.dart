@@ -98,46 +98,108 @@ class RetakeService {
     try {
       final userRef =
           FirebaseFirestore.instance.collection('users').doc(userId);
-      final userDoc = await userRef.get();
+      
+      // Use transaction to ensure atomic updates for counters
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final userDoc = await transaction.get(userRef);
 
-      if (!userDoc.exists) return;
+        if (!userDoc.exists) return;
 
-      final attempts =
-          userDoc.data()?['assessmentAttempts'] as List<dynamic>? ?? [];
+        final userData = userDoc.data()!;
+        final attempts = List<dynamic>.from(userData['assessmentAttempts'] ?? []);
 
-      // find and update the specific attempt
-      for (int i = 0; i < attempts.length; i++) {
-        if (attempts[i]['testId'] == testId) {
-          // update this attempt
-          final updatedAttempt = Map<String, dynamic>.from(attempts[i]);
-          updatedAttempt['status'] = status;
-          updatedAttempt['completedAt'] =
-              DateTime.now().toIso8601String(); // update completion time
+        bool updated = false;
+        bool wasAlreadyCompleted = false;
 
-          if (score != null) updatedAttempt['score'] = score;
-          if (jobTitle != null) updatedAttempt['jobTitle'] = jobTitle;
+        // find and update the specific attempt
+        for (int i = 0; i < attempts.length; i++) {
+          final attempt = Map<String, dynamic>.from(attempts[i]); // Create copy
+          if (attempt['testId'] == testId) {
+            
+            // IDEMPOTENCY CHECK: If already completed, don't increment counters again
+            if (attempt['status'] == 'Completed') {
+              wasAlreadyCompleted = true;
+            }
 
-          // Update the array
-          attempts[i] = updatedAttempt;
+            // update this attempt
+            attempt['status'] = status;
+            
+            // Only update timestamp if it wasn't already completed or if we are just marking it completed now
+            if (!wasAlreadyCompleted && status == 'Completed') {
+               attempt['completedAt'] = DateTime.now().toIso8601String();
+            } else if (status != 'Completed') {
+               attempt['completedAt'] = DateTime.now().toIso8601String();
+            }
 
+            if (score != null) attempt['score'] = score;
+            if (jobTitle != null) attempt['jobTitle'] = jobTitle;
+
+            // Update the array
+            attempts[i] = attempt;
+            updated = true;
+            break;
+          }
+        }
+
+        if (updated) {
           Map<String, dynamic> updateData = {
             'assessmentAttempts': attempts,
           };
 
-          // If status is completed, increment global counter
-          if (status == 'Completed') {
+          // If status is completed and it wasn't completed before, update counters
+          if (status == 'Completed' && !wasAlreadyCompleted) {
             updateData['assessmentsCompleted'] = FieldValue.increment(1);
+            
+            // --- WEEKLY ASSESSMENTS LOGIC ---
+            final now = DateTime.now();
+            final lastAssessmentDateStr = userData['lastAssessmentDate'];
+            
+            DateTime? lastAssessmentDate;
+            if (lastAssessmentDateStr != null) {
+              if (lastAssessmentDateStr is String) {
+                lastAssessmentDate = DateTime.tryParse(lastAssessmentDateStr);
+              } else if (lastAssessmentDateStr is Timestamp) {
+                lastAssessmentDate = lastAssessmentDateStr.toDate();
+              }
+            }
+
+            // Check if current completion is in the same week as the last one
+            if (lastAssessmentDate != null && _isSameWeek(lastAssessmentDate, now)) {
+              updateData['weeklyAssessments'] = FieldValue.increment(1);
+            } else {
+              // New week, reset to 1 (this attempt)
+              updateData['weeklyAssessments'] = 1;
+            }
+            
+            updateData['lastAssessmentDate'] = now.toIso8601String();
           }
 
-          await userRef.update(updateData);
-
-          print(
-              'Updated attempt ${updatedAttempt['attemptNumber']} status to $status');
-          break;
+          transaction.update(userRef, updateData);
+          
+          if (status == 'Completed' && !wasAlreadyCompleted) {
+             print('Assessment $testId completed. Counters updated.');
+          } else {
+             print('Updated attempt $testId status to $status (Idempotent update).');
+          }
         }
-      }
+      });
+
     } catch (e) {
       print('Error updating attempt status: $e');
     }
+  }
+
+  static bool _isSameWeek(DateTime date1, DateTime date2) {
+    // Calculate the start of the week (Monday) for both dates
+    // This is a simple approximation. exact week number libraries can also be used.
+    // Monday is 1, Sunday is 7.
+    final d1 = date1.subtract(Duration(days: date1.weekday - 1));
+    final d2 = date2.subtract(Duration(days: date2.weekday - 1));
+    
+    // Normalize to midnight
+    final startOfWeek1 = DateTime(d1.year, d1.month, d1.day);
+    final startOfWeek2 = DateTime(d2.year, d2.month, d2.day);
+    
+    return startOfWeek1 == startOfWeek2;
   }
 }
