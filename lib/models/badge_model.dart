@@ -9,6 +9,11 @@ class BadgeModel {
   final String? imageUrl;
   final String colorHex;
   final String category;
+  // New fields for logic
+  final String trigger;
+  final String conditionType;
+  final String? conditionField;
+  final dynamic conditionValue;
 
   BadgeModel({
     required this.id,
@@ -18,6 +23,10 @@ class BadgeModel {
     this.imageUrl,
     required this.colorHex,
     required this.category,
+    this.trigger = 'manual',
+    this.conditionType = 'none',
+    this.conditionField,
+    this.conditionValue,
   });
 
   factory BadgeModel.fromFirestore(DocumentSnapshot doc) {
@@ -30,6 +39,10 @@ class BadgeModel {
       imageUrl: data['imageUrl'],
       colorHex: data['colorHex'] ?? '#4BC945',
       category: data['category'] ?? 'General',
+      trigger: data['trigger'] ?? 'manual',
+      conditionType: data['conditionType'] ?? 'none',
+      conditionField: data['conditionField'],
+      conditionValue: data['conditionValue'],
     );
   }
 
@@ -67,6 +80,27 @@ class BadgeModel {
     } catch (e) {
       return const Color(0xFF4BC945);
     }
+  }
+
+  String get criteriaDescription {
+    if (conditionType == 'manual') {
+      return "Manual assignment";
+    }
+    
+    if (conditionType == 'count') {
+      if (conditionField == 'assessments') {
+         return "Complete $conditionValue assessments";
+      }
+      return "Reach $conditionValue in $conditionField";
+    }
+
+    if (trigger == 'manual') return "Manual assignment";
+
+    // Fallback
+    String suffix = "";
+    if (conditionField != null) suffix += " $conditionField";
+    if (conditionValue != null) suffix += " $conditionValue";
+    return "Criteria: $conditionType$suffix";
   }
 }
 

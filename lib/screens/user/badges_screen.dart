@@ -395,13 +395,54 @@ class _BadgesScreenState extends State<BadgesScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              Text(
-                badge.description,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[400],
-                ),
-                textAlign: TextAlign.center,
+              // Description Section
+              Column(
+                children: [
+                   const Text(
+                    'Description',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: geekGreen, // or Colors.white with bold
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    badge.description,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[400],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+
+              // Criteria / How to Earn Section
+              Column(
+                children: [
+                   const Text(
+                    'How to Earn',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: geekGreen,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    badge.criteriaDescription,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[400],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               Container(
