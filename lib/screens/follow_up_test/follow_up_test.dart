@@ -7,6 +7,7 @@ import '../../models/user_responses.dart';
 import '../../services/api_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/badge_service.dart';
+import '../../utils/retake_service.dart';
 
 class FollowUpTest extends StatefulWidget {
   final String userTestId;
